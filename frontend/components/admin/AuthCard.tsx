@@ -35,8 +35,8 @@ export default function AuthCard({
           <Image
             src="/images/caldim-logo.png"
             alt=""
-            width={32}
-            height={30}
+            width={76}
+            height={40}
             className="h-10 w-auto"
             priority
           />

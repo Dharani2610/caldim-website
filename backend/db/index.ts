@@ -1,5 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
+import { MongoClient, type Db, type Collection } from "mongodb";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { env } from "@/backend/env";
@@ -7,53 +8,309 @@ import * as schema from "@/backend/db/schema";
 
 export * from "@/backend/db/schema";
 
-/**
- * Supabase Postgres, over postgres-js.
- *
- * Two things about this connection are worth knowing before changing it.
- *
- * **Use the pooler.** Supabase gives you a direct connection on port 5432 and
- * a Supavisor pooler on 6543. Next runs many short-lived server contexts, and
- * a direct connection per context exhausts Postgres' connection slots quickly.
- * The pooled URI is what belongs in DATABASE_URL for the app; the direct URI
- * is only needed for migrations, which is why they are a separate script.
- *
- * **Prepared statements are off.** Supavisor runs in transaction mode, where a
- * connection is handed to whichever transaction needs it next. Named prepared
- * statements are per-connection state, so under transaction pooling they leak
- * across clients and fail with "prepared statement already exists". Passing
- * `prepare: false` makes postgres-js send unnamed statements, which are still
- * parameterised — the SQL-injection protection is unchanged, only the
- * server-side plan cache is given up.
- */
+// ─── MongoDB Document Type Definitions ──────────────────────────────────────
 
-const globalForDb = globalThis as unknown as {
+export interface AdminUserDoc {
+  _id: string;
+  email: string;
+  name: string;
+  passwordHash: string;
+  role: "owner" | "editor";
+  mustChangePassword: boolean;
+  disabled: boolean;
+  totpSecret?: string | null;
+  totpEnabled: boolean;
+  totpRecoveryHashes?: string[] | null;
+  failedAttempts: number;
+  lockedUntil?: Date | null;
+  lastLoginAt?: Date | null;
+  passwordChangedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SessionDoc {
+  _id: string;
+  tokenHash: string;
+  userId: string;
+  fullyAuthenticated: boolean;
+  ipHash?: string | null;
+  userAgent?: string | null;
+  lastSeenAt: Date;
+  absoluteExpiresAt: Date;
+  expiresAt: Date;
+  revokedAt?: Date | null;
+  createdAt: Date;
+}
+
+export function toAdminUser(doc: AdminUserDoc): AdminUserDoc & { id: string } {
+  return { ...doc, id: doc._id };
+}
+
+export function toSession(doc: SessionDoc): SessionDoc & { id: string } {
+  return { ...doc, id: doc._id };
+}
+
+export type AdminUser = AdminUserDoc & { id: string };
+export type Session = SessionDoc & { id: string };
+
+
+export interface ContentBlockDoc {
+  _id: string; // The block key (e.g., "hero", "services")
+  value: unknown;
+  updatedById?: string | null;
+  updatedAt: Date;
+  createdAt: Date;
+}
+
+
+export interface MediaAssetDoc {
+  _id: string;
+  publicId: string;
+  resourceType: "image" | "video" | "raw";
+  format: string;
+  secureUrl: string;
+  originalName: string;
+  mimeType: string;
+  byteSize: number;
+  width?: number | null;
+  height?: number | null;
+  duration?: number | null;
+  checksum: string;
+  altText: string;
+  title: string;
+  uploadedById?: string | null;
+  createdAt: Date;
+}
+
+export interface LeaderDoc {
+  _id: string;
+  name: string;
+  title: string;
+  credentials: string;
+  bio: string;
+  location: string;
+  email?: string | null;
+  linkedinUrl?: string | null;
+  photoId?: string | null;
+  initials: string;
+  sortOrder: number;
+  published: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface GalleryItemDoc {
+  _id: string;
+  collection: string; // e.g. "gallery", "projects", "shopfloor", "certificates"
+  mediaId: string;
+  caption: string;
+  meta: string;
+  posterId?: string | null;
+  sortOrder: number;
+  published: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AuditLogDoc {
+  _id: string;
+  userId?: string | null;
+  actorInfo: string;
+  action: string;
+  entity: string;
+  entityId: string;
+  outcome: "success" | "failure";
+  ipHash?: string | null;
+  userAgent?: string | null;
+  meta?: Record<string, unknown> | null;
+  createdAt: Date;
+}
+
+export interface RateLimitDoc {
+  _id: string; // The rate limit key
+  count: number;
+  windowStart: Date;
+  blockedUntil?: Date | null;
+  expiresAt: Date; // TTL index target
+  updatedAt: Date;
+}
+
+export interface ContactSubmissionDoc {
+  _id: string;
+  name: string;
+  company: string;
+  email: string;
+  role: string;
+  projectType: string;
+  tonnage: string;
+  timeline: string;
+  message: string;
+  attachmentId?: string | null;
+  ipHash?: string | null;
+  userAgent?: string | null;
+  handled: boolean;
+  createdAt: Date;
+}
+
+// ─── Connection Layer ───────────────────────────────────────────────────────
+
+const globalForMongo = globalThis as unknown as {
+  __caldimMongoClient?: MongoClient;
+  __caldimMongoDb?: Db;
   __caldimSql?: ReturnType<typeof postgres>;
   __caldimDb?: ReturnType<typeof createClient>;
 };
 
-/** Thrown when there is no connection string at all, as opposed to one that
- *  fails to connect. Callers use it to tell "not set up yet" from "down". */
 export class DatabaseNotConfigured extends Error {
   constructor() {
     super(
-      "DATABASE_URL is not set. Copy the pooled connection string from " +
-        "Supabase → Project Settings → Database → Connection string → URI, " +
-        "then put it in .env. Run `npm run doctor` to check."
+      "MONGODB_URI is not configured. Set MONGODB_URI in .env to connect to MongoDB."
     );
     this.name = "DatabaseNotConfigured";
   }
 }
 
+/**
+ * Checks whether MongoDB or legacy Postgres is configured with a valid connection string.
+ * Allows the application to gracefully degrade when no database is configured.
+ */
 export function isDatabaseConfigured(): boolean {
-  return Boolean(env.databaseUrl);
+  return Boolean(env.mongodbUri || env.databaseUrl);
 }
 
+/**
+ * Returns the connected MongoClient singleton instance.
+ */
+export async function getMongoClient(): Promise<MongoClient> {
+  const uri = env.mongodbUri;
+  if (!uri) throw new DatabaseNotConfigured();
+
+  if (globalForMongo.__caldimMongoClient) {
+    return globalForMongo.__caldimMongoClient;
+  }
+
+  const client = new MongoClient(uri, {
+    maxPoolSize: env.databasePoolMax || 10,
+    serverSelectionTimeoutMS: 5000,
+  });
+
+  await client.connect();
+  globalForMongo.__caldimMongoClient = client;
+  return client;
+}
+
+/**
+ * Returns the active MongoDB database instance.
+ */
+export async function getMongoDb(): Promise<Db> {
+  if (globalForMongo.__caldimMongoDb) {
+    return globalForMongo.__caldimMongoDb;
+  }
+
+  const client = await getMongoClient();
+  const db = client.db(env.mongodbDbName || "caldim");
+  globalForMongo.__caldimMongoDb = db;
+  return db;
+}
+
+// ─── Collection Getters ─────────────────────────────────────────────────────
+
+export async function getAdminUsersCollection(): Promise<Collection<AdminUserDoc>> {
+  const db = await getMongoDb();
+  return db.collection<AdminUserDoc>("admin_users");
+}
+
+export async function getSessionsCollection(): Promise<Collection<SessionDoc>> {
+  const db = await getMongoDb();
+  return db.collection<SessionDoc>("sessions");
+}
+
+export async function getContentBlocksCollection(): Promise<Collection<ContentBlockDoc>> {
+  const db = await getMongoDb();
+  return db.collection<ContentBlockDoc>("content_blocks");
+}
+
+export async function getMediaAssetsCollection(): Promise<Collection<MediaAssetDoc>> {
+  const db = await getMongoDb();
+  return db.collection<MediaAssetDoc>("media_assets");
+}
+
+export async function getLeadersCollection(): Promise<Collection<LeaderDoc>> {
+  const db = await getMongoDb();
+  return db.collection<LeaderDoc>("leaders");
+}
+
+export async function getGalleryItemsCollection(): Promise<Collection<GalleryItemDoc>> {
+  const db = await getMongoDb();
+  return db.collection<GalleryItemDoc>("gallery_items");
+}
+
+export async function getAuditLogsCollection(): Promise<Collection<AuditLogDoc>> {
+  const db = await getMongoDb();
+  return db.collection<AuditLogDoc>("audit_logs");
+}
+
+export async function getRateLimitsCollection(): Promise<Collection<RateLimitDoc>> {
+  const db = await getMongoDb();
+  return db.collection<RateLimitDoc>("rate_limits");
+}
+
+export async function getContactSubmissionsCollection(): Promise<Collection<ContactSubmissionDoc>> {
+  const db = await getMongoDb();
+  return db.collection<ContactSubmissionDoc>("contact_submissions");
+}
+
+/**
+ * Initializes all required unique, compound, and TTL indexes idempotently.
+ */
+export async function ensureMongoIndexes(db: Db): Promise<void> {
+  await Promise.all([
+    db.collection("admin_users").createIndex({ email: 1 }, { unique: true }),
+    db.collection("sessions").createIndex({ tokenHash: 1 }, { unique: true }),
+    db.collection("sessions").createIndex({ userId: 1 }),
+    db.collection("sessions").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+    db.collection("media_assets").createIndex({ publicId: 1 }, { unique: true }),
+    db.collection("media_assets").createIndex({ checksum: 1 }),
+    db.collection("media_assets").createIndex({ resourceType: 1 }),
+    db.collection("leaders").createIndex({ sortOrder: 1 }),
+    db.collection("leaders").createIndex({ published: 1, sortOrder: 1 }),
+    db.collection("gallery_items").createIndex({ collection: 1, sortOrder: 1 }),
+    db.collection("gallery_items").createIndex({ mediaId: 1 }),
+    db.collection("audit_logs").createIndex({ createdAt: -1 }),
+    db.collection("audit_logs").createIndex({ action: 1 }),
+    db.collection("rate_limits").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+    db.collection("contact_submissions").createIndex({ createdAt: -1 }),
+    db.collection("contact_submissions").createIndex({ handled: 1, createdAt: -1 }),
+  ]);
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/**
+ * Collision-resistant, sortable ID using timestamp prefix + random hex bytes.
+ */
+export function newId(): string {
+  return Date.now().toString(36) + randomBytes(12).toString("hex");
+}
+
+export async function one<T>(query: PromiseLike<T[]>): Promise<T | undefined> {
+  const rows = await query;
+  return rows[0];
+}
+
+// ─── Legacy Postgres/Drizzle Handle for Multi-Phase Transition ───────────────
+
 function createSql() {
-  if (!env.databaseUrl) throw new DatabaseNotConfigured();
+  if (!env.databaseUrl) {
+    return postgres("postgres://postgres:postgres@localhost:5432/caldim_unconfigured", {
+      max: 1,
+      connect_timeout: 1,
+      onnotice: () => undefined,
+    });
+  }
 
   return postgres(env.databaseUrl, {
-    // Supabase terminates TLS at the pooler with its own certificate chain.
     ssl: env.databaseSsl ? "require" : undefined,
     max: env.databasePoolMax,
     idle_timeout: 20,
@@ -66,29 +323,17 @@ function createSql() {
 type DbClient = ReturnType<typeof drizzle<typeof schema>>;
 
 function createClient(): DbClient {
-  const sql = globalForDb.__caldimSql ?? createSql();
-  globalForDb.__caldimSql = sql;
+  const sql = globalForMongo.__caldimSql ?? createSql();
+  globalForMongo.__caldimSql = sql;
   return drizzle(sql, { schema });
 }
 
-/**
- * One handle per process, created on first use rather than on import.
- *
- * The laziness is the point, not an optimisation. Connecting at module scope
- * meant that importing this file with no DATABASE_URL threw during evaluation
- * — before any caller's try/catch existed to catch it — so a missing
- * connection string took the whole homepage down with a 500 instead of
- * falling back to the shipped content the way it was designed to. Deferring
- * the connection to the first property access moves the failure inside the
- * caller's try block, where it can be handled.
- *
- * Caching also matters: Next re-evaluates modules on every hot reload, so
- * without it each edit would open another pool until Postgres refused new
- * connections.
- */
 function resolveDb(): DbClient {
-  if (!globalForDb.__caldimDb) globalForDb.__caldimDb = createClient();
-  return globalForDb.__caldimDb;
+  if (!env.databaseUrl) {
+    throw new DatabaseNotConfigured();
+  }
+  if (!globalForMongo.__caldimDb) globalForMongo.__caldimDb = createClient();
+  return globalForMongo.__caldimDb;
 }
 
 export const db = new Proxy({} as DbClient, {
@@ -99,25 +344,3 @@ export const db = new Proxy({} as DbClient, {
   },
 });
 
-/**
- * Collision-resistant, sortable id.
- *
- * The timestamp prefix keeps rows roughly insertion-ordered on disk (good for
- * a B-tree primary key), and 12 random bytes make guessing the id of a record
- * you weren't shown infeasible — which matters because ids appear in URLs.
- */
-export function newId(): string {
-  return Date.now().toString(36) + randomBytes(12).toString("hex");
-}
-
-/**
- * First row of a query, or `undefined`.
- *
- * SQLite's driver had `.get()` for this. The Postgres driver always resolves
- * to an array, and `(await query)[0]` at sixty call sites reads worse than a
- * name — particularly where the query is already several lines long.
- */
-export async function one<T>(query: PromiseLike<T[]>): Promise<T | undefined> {
-  const rows = await query;
-  return rows[0];
-}

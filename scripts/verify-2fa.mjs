@@ -1,6 +1,8 @@
 /** Verifies the TOTP enrolment → challenge → recovery-code path. */
 import { authenticator } from "otplib";
-const BASE = process.env.TEST_BASE_URL || process.env.SITE_URL || "http://localhost:3100";
+try { process.loadEnvFile?.(".env"); } catch {}
+const BASE = process.env.TEST_BASE_URL || process.env.SITE_URL || "http://localhost:3000";
+
 const EMAIL = "admin@caldimengg.com";
 const PASSWORD = process.argv[2];
 

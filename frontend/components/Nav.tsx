@@ -100,7 +100,7 @@ export default function Nav() {
       className={`fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,backdrop-filter] duration-300 ${
         scrolled || open
           ? "border-b border-blueprint bg-steel-950/90 backdrop-blur-md"
-          : "border-b border-transparent bg-transparent"
+          : "border-b border-blueprint/30 bg-steel-950/75 backdrop-blur-md"
       }`}
     >
       <nav
@@ -109,10 +109,10 @@ export default function Nav() {
       >
         <Link href="/#top" className="group flex items-center gap-3" style={{ perspective: "400px" }}>
           <Image
-            src="/images/caldim-logo.svg"
+            src="/images/caldim-logo.png"
             alt="Caldim Engineering Services logo"
-            width={40}
-            height={35}
+            width={76}
+            height={40}
             priority
             className="h-10 w-auto transition-transform duration-300 ease-out-expo group-hover:[transform:rotateY(-12deg)_rotateX(6deg)_scale(1.08)] md:h-12"
             style={{ filter: "drop-shadow(0 2px 6px rgba(42,107,204,0.45))" }}

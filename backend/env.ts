@@ -60,18 +60,25 @@ function readSecret(name: string, { required }: { required: boolean }): string {
  * locally) and are never used when NODE_ENV is production.
  */
 const isProduction = process.env.NODE_ENV === "production";
+const globalForDevSecrets = globalThis as unknown as Record<string, string>;
 
 function devFallback(label: string): string {
   if (isProduction) {
     throw new Error(`[env] ${label} must be set explicitly in production.`);
   }
-  return randomBytes(32).toString("base64");
+
+  const key = `__caldim_dev_secret_${label}`;
+  if (!globalForDevSecrets[key]) {
+    globalForDevSecrets[key] = randomBytes(32).toString("base64");
+  }
+  return globalForDevSecrets[key];
 }
 
 function secret(name: string): string {
   const value = readSecret(name, { required: isProduction });
   return value || devFallback(name);
 }
+
 
 function bool(name: string, fallback: boolean): boolean {
   const raw = process.env[name]?.trim().toLowerCase();
@@ -90,6 +97,12 @@ export const env = {
 
   /** Canonical public origin — used for cookie scoping and absolute URLs. */
   siteUrl: (process.env.SITE_URL ?? "http://localhost:3000").replace(/\/$/, ""),
+
+  /**
+   * MongoDB connection string.
+   */
+  mongodbUri: (process.env.MONGODB_URI ?? "").trim(),
+  mongodbDbName: (process.env.MONGODB_DB_NAME ?? "caldim").trim(),
 
   /**
    * Supabase Postgres. Use the *pooled* connection string (port 6543) here —

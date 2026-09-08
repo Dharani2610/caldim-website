@@ -31,15 +31,17 @@ const SteelAssemblyScene = dynamic(() => import("@/frontend/components/three/Ste
  */
 const THEMES: Record<"dark" | "light", SceneTheme> = {
   dark: {
-    steel: "#8E9AA7",
+    steel: "#94A1B0",
+    secondary: "#626F7D",
     steelDark: "#48535E",
     accent: "#3FA9E8",
-    bolt: "#D6E5F5",
+    bolt: "#E2EDF8",
     ambient: 0.6,
     key: 2.8,
   },
   light: {
     steel: "#BDC5CD",
+    secondary: "#949EA8",
     steelDark: "#7E8892",
     accent: "#F97316",
     bolt: "#E2E8F0",

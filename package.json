@@ -15,9 +15,10 @@
     "setup": "npm run db:generate && npm run db:migrate && npm run db:seed",
     "doctor": "node --env-file-if-exists=.env scripts/doctor.mjs",
     "db:migrate": "node --env-file=.env scripts/migrate.mjs",
-    "verify": "node scripts/verify.mjs",
-    "verify:2fa": "node scripts/verify-2fa.mjs",
-    "verify:lockout": "node scripts/verify-lockout.mjs"
+    "verify": "node --env-file-if-exists=.env scripts/verify.mjs",
+    "verify:2fa": "node --env-file-if-exists=.env scripts/verify-2fa.mjs",
+    "verify:lockout": "node --env-file-if-exists=.env scripts/verify-lockout.mjs"
+
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.0",

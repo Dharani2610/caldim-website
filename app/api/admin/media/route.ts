@@ -49,26 +49,32 @@ export async function GET(request: Request) {
   const gate = await guard(request, { csrf: false });
   if (!gate.ok) return gate.response;
 
-  const assets = await db
-    .select({
-      id: mediaAssets.id,
-      publicId: mediaAssets.publicId,
-      resourceType: mediaAssets.resourceType,
-      originalName: mediaAssets.originalName,
-      mimeType: mediaAssets.mimeType,
-      byteSize: mediaAssets.byteSize,
-      width: mediaAssets.width,
-      height: mediaAssets.height,
-      duration: mediaAssets.duration,
-      altText: mediaAssets.altText,
-      title: mediaAssets.title,
-      createdAt: mediaAssets.createdAt,
-    })
-    .from(mediaAssets)
-    .orderBy(desc(mediaAssets.createdAt))
-    .limit(300);
+  const { getMediaAssetsCollection } = await import("@/backend/db");
+  const mediaCol = await getMediaAssetsCollection();
+  const assets = await mediaCol
+    .find({})
+    .sort({ createdAt: -1 })
+    .limit(300)
+    .toArray();
 
-  return jsonOk({ assets: assets.map(present) });
+  return jsonOk({
+    assets: assets.map((a) =>
+      present({
+        id: a._id,
+        publicId: a.publicId,
+        resourceType: a.resourceType,
+        originalName: a.originalName,
+        mimeType: a.mimeType,
+        byteSize: a.byteSize,
+        width: a.width ?? null,
+        height: a.height ?? null,
+        duration: a.duration ?? null,
+        altText: a.altText,
+        title: a.title,
+        createdAt: a.createdAt,
+      })
+    ),
+  });
 }
 
 /**
@@ -118,42 +124,49 @@ export async function POST(request: Request) {
     return jsonError("That upload could not be processed.", 500);
   }
 
-  const asset = await one(
-    db
-      .insert(mediaAssets)
-      .values({
-        id: newId(),
-        publicId: stored.publicId,
-        resourceType: stored.resourceType,
-        format: stored.format,
-        secureUrl: stored.secureUrl,
-        originalName: stored.originalName,
-        mimeType: stored.mimeType,
-        byteSize: stored.byteSize,
-        width: stored.width ?? null,
-        height: stored.height ?? null,
-        duration: null,
-        checksum: stored.checksum,
-        altText,
-        title,
-        uploadedById: gate.user.id,
-        createdAt: new Date(),
-      })
-      .returning()
-  );
+  const { getMediaAssetsCollection } = await import("@/backend/db");
+  const mediaCol = await getMediaAssetsCollection();
+  const assetId = newId();
+  const assetDoc = {
+    _id: assetId,
+    publicId: stored.publicId,
+    resourceType: stored.resourceType,
+    format: stored.format,
+    secureUrl: stored.secureUrl,
+    originalName: stored.originalName,
+    mimeType: stored.mimeType,
+    byteSize: stored.byteSize,
+    width: stored.width ?? null,
+    height: stored.height ?? null,
+    duration: null,
+    checksum: stored.checksum,
+    altText,
+    title,
+    uploadedById: gate.user.id,
+    createdAt: new Date(),
+  };
 
-  if (!asset) return jsonError("That upload could not be recorded.", 500);
+  await mediaCol.insertOne(assetDoc);
 
   await audit({
     action: "media.uploaded",
     userId: gate.user.id,
     actorInfo: gate.user.email,
     entity: "MediaAsset",
-    entityId: asset.id,
-    meta: { originalName: asset.originalName, bytes: asset.byteSize, kind: asset.resourceType },
+    entityId: assetId,
+    meta: { originalName: assetDoc.originalName, bytes: assetDoc.byteSize, kind: assetDoc.resourceType },
   });
 
-  return jsonOk({ asset: present(asset) }, 201);
+  return jsonOk(
+    {
+      asset: present({
+        ...assetDoc,
+        id: assetId,
+      }),
+      url: `/api/media/${assetId}`,
+    },
+    201
+  );
 }
 
 /** Updates the alt text or title of an existing asset. */
@@ -175,14 +188,15 @@ export async function PATCH(request: Request) {
   const altText = optionalText(200).parse(payload.altText ?? "");
   const title = optionalText(160).parse(payload.title ?? "");
 
-  const updated = await one(
-    db
-      .update(mediaAssets)
-      .set({ altText, title })
-      .where(eq(mediaAssets.id, payload.id))
-      .returning()
+  const { getMediaAssetsCollection } = await import("@/backend/db");
+  const mediaCol = await getMediaAssetsCollection();
+
+  await mediaCol.updateOne(
+    { _id: payload.id },
+    { $set: { altText, title } }
   );
 
+  const updated = await mediaCol.findOne({ _id: payload.id });
   if (!updated) return jsonError("Not found.", 404);
 
   await audit({
@@ -190,8 +204,17 @@ export async function PATCH(request: Request) {
     userId: gate.user.id,
     actorInfo: gate.user.email,
     entity: "MediaAsset",
-    entityId: updated.id,
+    entityId: updated._id,
   });
 
-  return jsonOk({ asset: present(updated) });
+  return jsonOk({
+    asset: present({
+      ...updated,
+      id: updated._id,
+      width: updated.width ?? null,
+      height: updated.height ?? null,
+      duration: updated.duration ?? null,
+    }),
+  });
 }
+

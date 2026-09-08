@@ -3,7 +3,6 @@ import localFont from "next/font/local";
 import { headers } from "next/headers";
 import Script from "next/script";
 import "./globals.css";
-import Cursor from "@/frontend/components/Cursor";
 import SmoothScroll from "@/frontend/components/SmoothScroll";
 import { CsrfProvider } from "@/frontend/components/CsrfProvider";
 import { getOrCreateCsrfToken } from "@/backend/security/csrf";
@@ -206,7 +205,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
 
         <CsrfProvider token={csrfToken}>
-          <Cursor />
           <SmoothScroll>{children}</SmoothScroll>
         </CsrfProvider>
       </body>

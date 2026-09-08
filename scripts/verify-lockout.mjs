@@ -9,9 +9,11 @@
  *   node scripts/verify-lockout.mjs [optional-email] [optional-password]
  */
 import { hash, Algorithm } from "@node-rs/argon2";
-import { openDatabase, newId } from "./db.mjs";
+try { process.loadEnvFile?.(".env"); } catch {}
+import { MongoClient } from "mongodb";
 
-const BASE = process.env.TEST_BASE_URL || process.env.SITE_URL || "http://localhost:3100";
+
+const BASE = process.env.TEST_BASE_URL || process.env.SITE_URL || "http://localhost:3000";
 const EMAIL = (process.argv[2] || "lockout-test-user@caldimengg.com").toLowerCase().trim();
 const CORRECT_PASSWORD = process.argv[3] || "Lockout-Verify-Password-7788!";
 const WRONG_PASSWORD = "wrong-guess-attempt";
@@ -22,6 +24,18 @@ const ARGON2 = {
   timeCost: 2,
   parallelism: 1,
 };
+
+function newId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+async function getMongoCollection() {
+  const uri = process.env.MONGODB_URI || "mongodb://localhost:27017";
+  const client = new MongoClient(uri);
+  await client.connect();
+  const db = client.db(process.env.MONGODB_DB_NAME || "caldim");
+  return { client, collection: db.collection("admin_users") };
+}
 
 let pass = 0;
 let fail = 0;
@@ -76,29 +90,38 @@ async function req(jar, path, options = {}) {
 
 async function prepareThrowawayAccount() {
   try {
-    const sql = openDatabase();
-    const [existing] = await sql`SELECT id FROM admin_users WHERE email = ${EMAIL}`;
+    const { client, collection } = await getMongoCollection();
     const passwordHash = await hash(CORRECT_PASSWORD, ARGON2);
+    const nowDate = new Date();
 
-    if (existing) {
-      await sql`
-        UPDATE admin_users
-        SET password_hash = ${passwordHash}, failed_attempts = 0, locked_until = NULL, disabled = false, updated_at = now()
-        WHERE id = ${existing.id}
-      `;
-    } else {
-      await sql`
-        INSERT INTO admin_users
-          (id, email, name, password_hash, role, must_change_password, disabled,
-           totp_enabled, failed_attempts, password_changed_at, created_at, updated_at)
-        VALUES (${newId()}, ${EMAIL}, 'Lockout Test Account', ${passwordHash},
-                'editor', false, false, false, 0, now(), now(), now())
-      `;
-    }
-    await sql.end();
+    await collection.updateOne(
+      { email: EMAIL },
+      {
+        $set: {
+          email: EMAIL,
+          name: "Lockout Test Account",
+          passwordHash,
+          role: "editor",
+          mustChangePassword: false,
+          disabled: false,
+          totpSecret: null,
+          totpEnabled: false,
+          totpRecoveryHashes: null,
+          failedAttempts: 0,
+          lockedUntil: null,
+          passwordChangedAt: nowDate,
+          updatedAt: nowDate,
+        },
+        $setOnInsert: {
+          _id: newId(),
+          createdAt: nowDate,
+        },
+      },
+      { upsert: true }
+    );
+    await client.close();
     return true;
   } catch (err) {
-    // Database connection may not be directly reachable in all environments
     console.log(`  (Note: Direct DB bootstrap skipped: ${err.message})`);
     return false;
   }
@@ -106,10 +129,10 @@ async function prepareThrowawayAccount() {
 
 async function getDbLockoutState() {
   try {
-    const sql = openDatabase();
-    const [user] = await sql`SELECT failed_attempts, locked_until FROM admin_users WHERE email = ${EMAIL}`;
-    await sql.end();
-    return user;
+    const { client, collection } = await getMongoCollection();
+    const user = await collection.findOne({ email: EMAIL });
+    await client.close();
+    return user ? { failed_attempts: user.failedAttempts, locked_until: user.lockedUntil } : null;
   } catch {
     return null;
   }
@@ -117,13 +140,14 @@ async function getDbLockoutState() {
 
 async function cleanupThrowawayAccount() {
   try {
-    const sql = openDatabase();
-    await sql`DELETE FROM admin_users WHERE email = ${EMAIL}`;
-    await sql.end();
+    const { client, collection } = await getMongoCollection();
+    await collection.deleteOne({ email: EMAIL });
+    await client.close();
   } catch {
-    // Ignore cleanup errors if DB is unreachable
+    // Ignore cleanup errors
   }
 }
+
 
 async function main() {
   console.log(`\n── Isolated Account Lockout Verification ────────────────────`);

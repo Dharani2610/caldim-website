@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { desc, eq, count } from "drizzle-orm";
 import {
   AlertTriangle,
   FileText,
@@ -11,7 +10,14 @@ import {
 } from "lucide-react";
 import AdminShell from "@/frontend/components/admin/AdminShell";
 import { Panel } from "@/frontend/components/admin/ui";
-import { auditLogs, contactSubmissions, contentBlocks, db, leaders, mediaAssets, one } from "@/backend/db";
+import {
+  getAuditLogsCollection,
+  getContactSubmissionsCollection,
+  getContentBlocksCollection,
+  getLeadersCollection,
+  getMediaAssetsCollection,
+  isDatabaseConfigured,
+} from "@/backend/db";
 import { requireAdmin } from "@/backend/security/requireAdmin";
 import { pruneExpiredSessions } from "@/backend/security/session";
 import { pruneRateLimits } from "@/backend/security/rateLimit";
@@ -20,7 +26,7 @@ export const metadata: Metadata = { title: "Overview", robots: { index: false, f
 export const dynamic = "force-dynamic";
 
 function timeAgo(date: Date): string {
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
   if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
@@ -37,40 +43,65 @@ export default async function AdminDashboard() {
   pruneExpiredSessions();
   pruneRateLimits();
 
-  const leaderCount = (await one(db.select({ value: count() }).from(leaders)))?.value ?? 0;
-  const mediaCount = (await one(db.select({ value: count() }).from(mediaAssets)))?.value ?? 0;
-  const enquiryCount = (await one(db.select({ value: count() }).from(contactSubmissions)))?.value ?? 0;
-  const unhandledCount =
-    (await one(db
-      .select({ value: count() })
-      .from(contactSubmissions)
-      .where(eq(contactSubmissions.handled, false))
-      ))?.value ?? 0;
-  const editedBlocks = (await one(db.select({ value: count() }).from(contentBlocks)))?.value ?? 0;
+  let leaderCount = 0;
+  let mediaCount = 0;
+  let enquiryCount = 0;
+  let unhandledCount = 0;
+  let editedBlocks = 0;
+  let recentFailures: Array<{ id: string; action: string; actorInfo: string; createdAt: Date }> = [];
+  let recentActivity: Array<{ id: string; action: string; actorInfo: string; entityId: string; createdAt: Date }> = [];
 
-  const recentFailures = await db
-    .select({
-      id: auditLogs.id,
-      action: auditLogs.action,
-      actorInfo: auditLogs.actorInfo,
-      createdAt: auditLogs.createdAt,
-    })
-    .from(auditLogs)
-    .where(eq(auditLogs.outcome, "failure"))
-    .orderBy(desc(auditLogs.createdAt))
-    .limit(5);
+  if (isDatabaseConfigured()) {
+    try {
+      const [leadersCol, mediaCol, contactCol, contentCol, auditCol] = await Promise.all([
+        getLeadersCollection(),
+        getMediaAssetsCollection(),
+        getContactSubmissionsCollection(),
+        getContentBlocksCollection(),
+        getAuditLogsCollection(),
+      ]);
 
-  const recentActivity = await db
-    .select({
-      id: auditLogs.id,
-      action: auditLogs.action,
-      actorInfo: auditLogs.actorInfo,
-      entityId: auditLogs.entityId,
-      createdAt: auditLogs.createdAt,
-    })
-    .from(auditLogs)
-    .orderBy(desc(auditLogs.createdAt))
-    .limit(8);
+      const [lc, mc, ec, uc, ebc, rf, ra] = await Promise.all([
+        leadersCol.countDocuments(),
+        mediaCol.countDocuments(),
+        contactCol.countDocuments(),
+        contactCol.countDocuments({ handled: false }),
+        contentCol.countDocuments(),
+        auditCol
+          .find({ outcome: "failure" })
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .toArray(),
+        auditCol
+          .find({})
+          .sort({ createdAt: -1 })
+          .limit(8)
+          .toArray(),
+      ]);
+
+      leaderCount = lc;
+      mediaCount = mc;
+      enquiryCount = ec;
+      unhandledCount = uc;
+      editedBlocks = ebc;
+      recentFailures = rf.map((r) => ({
+        id: r._id,
+        action: r.action,
+        actorInfo: r.actorInfo,
+        createdAt: r.createdAt,
+      }));
+      recentActivity = ra.map((r) => ({
+        id: r._id,
+        action: r.action,
+        actorInfo: r.actorInfo,
+        entityId: r.entityId,
+        createdAt: r.createdAt,
+      }));
+    } catch {
+      // Degrade gracefully if DB read fails
+    }
+  }
+
 
   const cards = [
     { href: "/admin/leadership", label: "Leadership entries", value: leaderCount, icon: Users },

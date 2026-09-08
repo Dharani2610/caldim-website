@@ -38,17 +38,20 @@ import * as THREE from "three";
 
 // ── Structure dimensions ────────────────────────────────────────────────
 /**
- * A two-level braced frame, on an engineered four-column grid.
+ * A multi-bay industrial framing facility on a 6-column engineered grid.
  *
  * Proportions are calibrated for maximum structural silhouette clarity,
- * distinct member separation, and generous breathing room.
+ * distinct member hierarchy, and generous breathing room.
  */
 const COL_W = 0.28;
-const BAY_X = 2.4;
-const BAY_Z = 1.5;
+const GRID_X = [-3.4, 0.0, 3.4] as const;
+const GRID_Z = [-1.65, 1.65] as const;
 const BEAM_D = 0.36;
-const PLAT_X = 2.65;
-const PLAT_Z = 1.65;
+
+const PLAT_X = 3.65;
+const PLAT_Z = 1.75;
+const BAY_LEN_X = 3.4;
+const BAY_LEN_Z = 1.65;
 
 /** Deck heights, bottom level first. */
 const DECK_Y = 2.85;
@@ -57,7 +60,7 @@ const LEVEL_DECKS = [DECK_Y, DECK_Y2];
 
 /** Beam centreline sits just under its deck. */
 const beamYFor = (deckY: number) => deckY - 0.03 - BEAM_D / 2;
-/** Column steel stops at the soffit of the top beam. */
+/** Column steel stops at the soffit of the upper framing. */
 const COL_TOP = beamYFor(DECK_Y2) - BEAM_D / 2;
 
 const railTopFor = (deckY: number) => deckY + 1.1;
@@ -73,7 +76,7 @@ const STAIR_RUN_X = 2.75;
 /** Treads ride this far above the stringer centre line. */
 const TREAD_RISE_OFF = 0.18;
 /** Where a platform guardrail returns to meet a stair rail. */
-const RETURN_X = 2.6;
+const RETURN_X = 3.6;
 const STAIR_RAIL_Z = STAIR_W / 2;
 
 type Vec3 = [number, number, number];
@@ -127,11 +130,14 @@ function clamp01(t: number): number {
   return t < 0 ? 0 : t > 1 ? 1 : t;
 }
 
-const SIGNS: [number, number][] = [
-  [-1, -1],
-  [1, -1],
-  [-1, 1],
-  [1, 1],
+/** 6-column grid coordinates */
+const COLUMNS_6: [number, number][] = [
+  [-3.4, -1.65],
+  [0.0, -1.65],
+  [3.4, -1.65],
+  [-3.4, 1.65],
+  [0.0, 1.65],
+  [3.4, 1.65],
 ];
 
 /** A stair flight, described by where it starts and which way it runs. */
@@ -147,18 +153,18 @@ function buildParts(): { parts: Part[]; bolts: Bolt[] } {
   const parts: Part[] = [];
   const bolts: Bolt[] = [];
 
-  // ── Stage 1: Foundations (0.15s - 0.7s) ─────────────────────────────────
-  // Base plates seat firmly on the ground pad; anchor rods drive in.
-  SIGNS.forEach(([sx, sz], i) => {
+  // ── Stage 1: Foundations (0.15s - 0.75s) ─────────────────────────────────
+  // 6 heavy base plates seat on the ground pad; 24 anchor rods drive in.
+  COLUMNS_6.forEach(([gx, gz], i) => {
     parts.push({
       kind: "plate",
       a: 0.72,
       b: 0.045,
       c: 0.72,
-      final: [sx * BAY_X, 0.022, sz * BAY_Z],
+      final: [gx, 0.022, gz],
       finalRot: [0, 0, 0],
       axisY: false,
-      startTime: 0.15 + i * 0.08,
+      startTime: 0.15 + i * 0.06,
       duration: 0.45,
       dropHeight: 1.2,
     });
@@ -167,9 +173,9 @@ function buildParts(): { parts: Part[]; bolts: Bolt[] } {
       for (const oz of [-0.25, 0.25]) {
         bolts.push({
           tc: false,
-          final: [sx * BAY_X + ox, 0.11, sz * BAY_Z + oz],
+          final: [gx + ox, 0.11, gz + oz],
           finalRot: [0, 0, 0],
-          startTime: 0.4 + i * 0.06 + bIdx * 0.02,
+          startTime: 0.35 + i * 0.05 + bIdx * 0.02,
           duration: 0.3,
         });
         bIdx += 1;
@@ -177,157 +183,284 @@ function buildParts(): { parts: Part[]; bolts: Bolt[] } {
     }
   });
 
-  // ── Stage 2: Vertical Columns & Mid-Level Splice Plates (0.75s - 1.8s) ───
-  // 4 Full-height HSS columns lower smoothly along vertical axis onto base plates.
-  SIGNS.forEach(([sx, sz], i) => {
+  // ── Stage 2: Vertical Columns & Mid-Level Splice Plates (0.75s - 1.85s) ───
+  // 6 Full-height HSS columns lower smoothly along vertical axis onto base plates.
+  COLUMNS_6.forEach(([gx, gz], i) => {
     parts.push({
       kind: "hss",
       a: COL_W,
       b: COL_TOP - 0.045,
       c: COL_W,
-      final: [sx * BAY_X, (COL_TOP + 0.045) / 2, sz * BAY_Z],
+      final: [gx, (COL_TOP + 0.045) / 2, gz],
       finalRot: [0, 0, 0],
       axisY: true,
-      startTime: 0.75 + i * 0.15,
-      duration: 0.7,
+      startTime: 0.75 + i * 0.12,
+      duration: 0.65,
       dropHeight: 4.5,
     });
+    // Column splice / stiffener plates
     parts.push({
       kind: "plate",
       a: COL_W + 0.18,
       b: 0.032,
       c: COL_W + 0.18,
-      final: [sx * BAY_X, DECK_Y + 0.65, sz * BAY_Z],
+      final: [gx, DECK_Y + 0.65, gz],
       finalRot: [0, 0, 0],
       axisY: false,
-      startTime: 1.35 + i * 0.08,
+      startTime: 1.25 + i * 0.07,
       duration: 0.45,
       dropHeight: 1.8,
     });
   });
 
-  // ── Stage 3 & 4: Framing & Decks (Level 1: 1.75s - 3.3s, Level 2: 3.1s - 4.7s)
-  LEVEL_DECKS.forEach((deckY, levelIdx) => {
-    const beamY = beamYFor(deckY);
-    const stageBase = levelIdx === 0 ? 1.75 : 3.1;
+  // ── Stage 3: Level 1 Primary Framing, Infill Joists & Deck (1.75s - 3.4s) ──
+  const beamY1 = beamYFor(DECK_Y);
 
-    // Main primary girders spanning X
-    [-1, 1].forEach((sz, beamIdx) => {
-      parts.push({
-        kind: "wf",
-        a: PLAT_X * 2,
-        b: BEAM_D,
-        c: 0.26,
-        final: [0, beamY, sz * BAY_Z],
-        finalRot: [0, 0, 0],
-        axisY: false,
-        startTime: stageBase + beamIdx * 0.18,
-        duration: 0.55,
-        dropHeight: 2.4,
-      });
-      let bIdx = 0;
-      for (const sx of [-1, 1]) {
-        for (const off of [-0.2, 0.2]) {
-          bolts.push({
-            tc: true,
-            final: [sx * BAY_X + off, beamY + BEAM_D / 2 + 0.05, sz * BAY_Z],
-            finalRot: [0, 0, 0],
-            startTime: stageBase + 0.35 + bIdx * 0.025,
-            duration: 0.3,
-          });
-          bIdx += 1;
-        }
-      }
+  // Longitudinal primary W-girders spanning full 2-bay length (X-axis)
+  [-1.65, 1.65].forEach((gz, beamIdx) => {
+    parts.push({
+      kind: "wf",
+      a: 7.2,
+      b: BEAM_D,
+      c: 0.26,
+      final: [0, beamY1, gz],
+      finalRot: [0, 0, 0],
+      axisY: false,
+      startTime: 1.75 + beamIdx * 0.18,
+      duration: 0.55,
+      dropHeight: 2.4,
     });
-
-    // Secondary infill beams framing across Z
-    [-1.2, 0, 1.2].forEach((x, beamIdx) => {
-      parts.push({
-        kind: "wf",
-        a: BAY_Z * 2,
-        b: 0.28,
-        c: 0.2,
-        final: [x, beamY - 0.02, 0],
-        finalRot: [0, Math.PI / 2, 0],
-        axisY: false,
-        startTime: stageBase + 0.35 + beamIdx * 0.12,
-        duration: 0.5,
-        dropHeight: 2.2,
-      });
-      [-1, 1].forEach((sz, bIdx) => {
+    // Moment & shear tab connection bolts at columns
+    let bIdx = 0;
+    for (const gx of GRID_X) {
+      for (const off of [-0.2, 0.2]) {
         bolts.push({
           tc: true,
-          final: [x, beamY - 0.02, sz * (BAY_Z - 0.18)],
-          finalRot: [0, 0, Math.PI / 2],
-          startTime: stageBase + 0.65 + beamIdx * 0.06 + bIdx * 0.025,
+          final: [gx + off, beamY1 + BEAM_D / 2 + 0.05, gz],
+          finalRot: [0, 0, 0],
+          startTime: 2.1 + bIdx * 0.025,
           duration: 0.3,
         });
-      });
-    });
+        bIdx += 1;
+      }
+    }
+  });
 
-    // Floor deck plate
+  // Transverse primary cross-girders across Z at each column line
+  GRID_X.forEach((gx, beamIdx) => {
     parts.push({
-      kind: "plate",
-      a: PLAT_X * 2,
-      b: 0.05,
-      c: PLAT_Z * 2,
-      final: [0, deckY, 0],
-      finalRot: [0, 0, 0],
+      kind: "wf",
+      a: 3.3,
+      b: BEAM_D,
+      c: 0.24,
+      final: [gx, beamY1 - 0.01, 0],
+      finalRot: [0, Math.PI / 2, 0],
       axisY: false,
-      startTime: stageBase + 0.75,
-      duration: 0.45,
-      dropHeight: 1.8,
+      startTime: 2.05 + beamIdx * 0.12,
+      duration: 0.5,
+      dropHeight: 2.2,
     });
+  });
 
-    // Perimeter channel trim / kick-plate
-    [-1, 1].forEach((sz, trimIdx) => {
-      parts.push({
-        kind: "channel",
-        a: PLAT_X * 2,
-        b: 0.22,
-        c: 0.11,
-        final: [0, deckY + 0.09, sz * PLAT_Z],
-        finalRot: [0, 0, 0],
-        axisY: false,
-        flip: sz > 0,
-        startTime: stageBase + 0.9 + trimIdx * 0.1,
-        duration: 0.45,
-        dropHeight: 1.5,
+  // Secondary infill beams / joists spanning across Z
+  [-2.25, -1.15, 1.15, 2.25].forEach((x, beamIdx) => {
+    parts.push({
+      kind: "wf",
+      a: 3.3,
+      b: 0.28,
+      c: 0.18,
+      final: [x, beamY1 - 0.02, 0],
+      finalRot: [0, Math.PI / 2, 0],
+      axisY: false,
+      startTime: 2.3 + beamIdx * 0.08,
+      duration: 0.48,
+      dropHeight: 2.0,
+    });
+    [-1.65, 1.65].forEach((gz, bIdx) => {
+      bolts.push({
+        tc: true,
+        final: [x, beamY1 - 0.02, gz > 0 ? gz - 0.15 : gz + 0.15],
+        finalRot: [0, 0, Math.PI / 2],
+        startTime: 2.6 + beamIdx * 0.05 + bIdx * 0.02,
+        duration: 0.28,
       });
     });
   });
 
-  // ── Stage 5: Vertical Chevron Bracing & Gusset Plates (4.3s - 5.5s) ──────
-  pushBracing(parts, 0.2, beamYFor(DECK_Y) - BEAM_D / 2, 4.3);
-  pushBracing(parts, DECK_Y + 0.1, beamYFor(DECK_Y2) - BEAM_D / 2, 4.7);
+  // Level 1 Floor Deck Plate
+  parts.push({
+    kind: "plate",
+    a: 7.2,
+    b: 0.05,
+    c: 3.5,
+    final: [0, DECK_Y, 0],
+    finalRot: [0, 0, 0],
+    axisY: false,
+    startTime: 2.85,
+    duration: 0.48,
+    dropHeight: 1.8,
+  });
+
+  // Perimeter channel trim / kick-plates
+  [-1.75, 1.75].forEach((sz, trimIdx) => {
+    parts.push({
+      kind: "channel",
+      a: 7.2,
+      b: 0.22,
+      c: 0.11,
+      final: [0, DECK_Y + 0.09, sz],
+      finalRot: [0, 0, 0],
+      axisY: false,
+      flip: sz > 0,
+      startTime: 3.0 + trimIdx * 0.1,
+      duration: 0.45,
+      dropHeight: 1.5,
+    });
+  });
+
+  // ── Stage 4: Level 2 Upper Framing, Mezzanine Deck & Open Roof Bay (3.1s - 4.8s)
+  const beamY2 = beamYFor(DECK_Y2);
+
+  // Full-length Level 2 Longitudinal Primary Girders across both bays (X-axis)
+  [-1.65, 1.65].forEach((gz, beamIdx) => {
+    parts.push({
+      kind: "wf",
+      a: 7.2,
+      b: BEAM_D,
+      c: 0.26,
+      final: [0, beamY2, gz],
+      finalRot: [0, 0, 0],
+      axisY: false,
+      startTime: 3.15 + beamIdx * 0.15,
+      duration: 0.55,
+      dropHeight: 2.4,
+    });
+    for (const gx of GRID_X) {
+      for (const off of [-0.2, 0.2]) {
+        bolts.push({
+          tc: true,
+          final: [gx + off, beamY2 + BEAM_D / 2 + 0.05, gz],
+          finalRot: [0, 0, 0],
+          startTime: 3.45 + (gx === 0 ? 0 : 0.08),
+          duration: 0.3,
+        });
+      }
+    }
+  });
+
+  // Upper Transverse Girders at all 3 column lines x = -3.4, 0.0, 3.4
+  GRID_X.forEach((gx, beamIdx) => {
+    parts.push({
+      kind: "wf",
+      a: 3.3,
+      b: BEAM_D,
+      c: 0.24,
+      final: [gx, beamY2 - 0.01, 0],
+      finalRot: [0, Math.PI / 2, 0],
+      axisY: false,
+      startTime: 3.35 + beamIdx * 0.1,
+      duration: 0.5,
+      dropHeight: 2.2,
+    });
+  });
+
+  // Upper Infill Beams on Mezzanine Bay at x = 1.15, 2.25
+  [1.15, 2.25].forEach((x, beamIdx) => {
+    parts.push({
+      kind: "wf",
+      a: 3.3,
+      b: 0.28,
+      c: 0.18,
+      final: [x, beamY2 - 0.02, 0],
+      finalRot: [0, Math.PI / 2, 0],
+      axisY: false,
+      startTime: 3.55 + beamIdx * 0.08,
+      duration: 0.48,
+      dropHeight: 2.0,
+    });
+  });
+
+  // Upper Mezzanine Deck Plate (covering right bay from x = 0 to 3.5)
+  parts.push({
+    kind: "plate",
+    a: 3.7,
+    b: 0.05,
+    c: 3.5,
+    final: [1.7, DECK_Y2, 0],
+    finalRot: [0, 0, 0],
+    axisY: false,
+    startTime: 3.8,
+    duration: 0.45,
+    dropHeight: 1.8,
+  });
+
+  // Upper Perimeter Channel Trim (Right Bay)
+  [-1.75, 1.75].forEach((sz, trimIdx) => {
+    parts.push({
+      kind: "channel",
+      a: 3.7,
+      b: 0.22,
+      c: 0.11,
+      final: [1.7, DECK_Y2 + 0.09, sz],
+      finalRot: [0, 0, 0],
+      axisY: false,
+      flip: sz > 0,
+      startTime: 3.95 + trimIdx * 0.08,
+      duration: 0.45,
+      dropHeight: 1.5,
+    });
+  });
+
+  // Open Structural Roof Purlins on Left Bay (x = -3.4 to 0.0)
+  [-1.65, -0.82, 0, 0.82, 1.65].forEach((z, purlinIdx) => {
+    parts.push({
+      kind: "channel",
+      a: 3.7,
+      b: 0.18,
+      c: 0.09,
+      final: [-1.7, beamY2 + 0.15, z],
+      finalRot: [0, 0, 0],
+      axisY: false,
+      startTime: 4.05 + purlinIdx * 0.06,
+      duration: 0.45,
+      dropHeight: 1.6,
+    });
+  });
+
+  // ── Stage 5: Vertical Chevron & X-Bracing + Chamfered Gusset Plates (4.3s - 5.6s)
+  // Multi-panel chevron bracing on rear bays and X-bracing on end bays
+  pushMultiBayBracing(parts, 4.3);
 
   // ── Stage 6: Access Systems — Stairs & Ladder (5.0s - 6.5s) ──────────────
   pushLadder(parts, bolts, 5.0);
   pushFlight(parts, bolts, { fromY: 0.01, toY: DECK_Y, dir: 1 }, 5.2);
 
   // ── Stage 7: Perimeter Guardrails & Handrails (5.8s - 7.2s) ──────────────
-  pushRailings(parts, DECK_Y, 1, 5.8);
-  pushRailings(parts, DECK_Y2, -1, 6.2);
+  pushMultiBayRailings(parts, 5.8);
 
   return { parts, bolts };
 }
 
 /**
- * Chevron pipe bracing with gusset plates at every work point.
+ * Multi-bay chevron and X-bracing with engineered gusset plates.
  */
-function pushBracing(parts: Part[], footY: number, soffitY: number, baseTime: number) {
+function pushMultiBayBracing(parts: Part[], baseTime: number) {
   const BRACE_R = 0.09;
-  const apexY = soffitY - 0.1;
-  const rise = apexY - footY;
+  const soffitY1 = beamYFor(DECK_Y) - BEAM_D / 2;
+  const apexY1 = soffitY1 - 0.1;
+  const footY1 = 0.2;
+  const rise1 = apexY1 - footY1;
+  const halfBayX = BAY_LEN_X / 2;
+  const lenChevron = Math.hypot(halfBayX, rise1);
 
-  const lenX = Math.hypot(BAY_X, rise);
-  [-1, 1].forEach((sx, i) => {
+  // 1. Rear Bay 1 Chevron (x = -1.7, z = -1.65)
+  [-1, 1].forEach((dir, i) => {
     parts.push({
       kind: "gusset",
       a: 0.56,
       b: 0.48,
       c: 0.03,
-      final: [sx * BAY_X, footY + 0.22, -BAY_Z],
+      final: [-1.7 + dir * halfBayX, footY1 + 0.22, -1.65],
       finalRot: [0, 0, 0],
       axisY: false,
       flip: true,
@@ -338,12 +471,12 @@ function pushBracing(parts: Part[], footY: number, soffitY: number, baseTime: nu
     parts.push({
       kind: "pipe",
       a: BRACE_R,
-      b: lenX,
+      b: lenChevron,
       c: BRACE_R,
-      final: [(sx * BAY_X) / 2, (apexY + footY) / 2, -BAY_Z],
-      finalRot: [0, 0, sx * Math.atan2(BAY_X, rise)],
+      final: [-1.7 + (dir * halfBayX) / 2, (apexY1 + footY1) / 2, -1.65],
+      finalRot: [0, 0, dir * Math.atan2(halfBayX, rise1)],
       axisY: true,
-      startTime: baseTime + 0.12 + i * 0.06,
+      startTime: baseTime + 0.1 + i * 0.05,
       duration: 0.45,
       dropHeight: 1.6,
     });
@@ -353,51 +486,116 @@ function pushBracing(parts: Part[], footY: number, soffitY: number, baseTime: nu
     a: 0.82,
     b: 0.46,
     c: 0.03,
-    final: [0, soffitY - 0.22, -BAY_Z],
+    final: [-1.7, soffitY1 - 0.22, -1.65],
     finalRot: [0, 0, 0],
     axisY: false,
-    startTime: baseTime + 0.1,
+    startTime: baseTime + 0.08,
     duration: 0.4,
     dropHeight: 1.4,
   });
 
-  const lenZ = Math.hypot(BAY_Z, rise);
-  [-1, 1].forEach((sz, i) => {
+  // 2. Rear Bay 2 Chevron (x = +1.7, z = -1.65)
+  [-1, 1].forEach((dir, i) => {
     parts.push({
       kind: "gusset",
       a: 0.56,
       b: 0.48,
       c: 0.03,
-      final: [-BAY_X, footY + 0.22, sz * BAY_Z],
-      finalRot: [0, Math.PI / 2, 0],
+      final: [1.7 + dir * halfBayX, footY1 + 0.22, -1.65],
+      finalRot: [0, 0, 0],
       axisY: false,
       flip: true,
-      startTime: baseTime + 0.16 + i * 0.05,
+      startTime: baseTime + 0.15 + i * 0.05,
       duration: 0.4,
       dropHeight: 1.4,
     });
     parts.push({
       kind: "pipe",
       a: BRACE_R,
-      b: lenZ,
+      b: lenChevron,
       c: BRACE_R,
-      final: [-BAY_X, (apexY + footY) / 2, (sz * BAY_Z) / 2],
-      finalRot: [-sz * Math.atan2(BAY_Z, rise), 0, 0],
+      final: [1.7 + (dir * halfBayX) / 2, (apexY1 + footY1) / 2, -1.65],
+      finalRot: [0, 0, dir * Math.atan2(halfBayX, rise1)],
       axisY: true,
-      startTime: baseTime + 0.24 + i * 0.06,
+      startTime: baseTime + 0.22 + i * 0.05,
       duration: 0.45,
       dropHeight: 1.6,
     });
   });
   parts.push({
     kind: "gusset",
-    a: 0.74,
+    a: 0.82,
     b: 0.46,
     c: 0.03,
-    final: [-BAY_X, soffitY - 0.22, 0],
-    finalRot: [0, Math.PI / 2, 0],
+    final: [1.7, soffitY1 - 0.22, -1.65],
+    finalRot: [0, 0, 0],
     axisY: false,
     startTime: baseTime + 0.2,
+    duration: 0.4,
+    dropHeight: 1.4,
+  });
+
+  // 3. Side End-Bay Cross Bracing at x = -3.4 (Z-axis)
+  const riseZ = soffitY1 - footY1;
+  const lenZ = Math.hypot(BAY_LEN_Z * 2, riseZ);
+  [-1, 1].forEach((dir, i) => {
+    parts.push({
+      kind: "pipe",
+      a: 0.075,
+      b: lenZ,
+      c: 0.075,
+      final: [-3.4, (soffitY1 + footY1) / 2, 0],
+      finalRot: [dir * Math.atan2(BAY_LEN_Z * 2, riseZ), 0, 0],
+      axisY: true,
+      startTime: baseTime + 0.28 + i * 0.06,
+      duration: 0.45,
+      dropHeight: 1.6,
+    });
+  });
+  // Center diamond gusset plate at X-brace intersection
+  parts.push({
+    kind: "gusset",
+    a: 0.62,
+    b: 0.52,
+    c: 0.03,
+    final: [-3.4, (soffitY1 + footY1) / 2, 0],
+    finalRot: [0, Math.PI / 2, 0],
+    axisY: false,
+    startTime: baseTime + 0.32,
+    duration: 0.4,
+    dropHeight: 1.2,
+  });
+
+  // 4. Upper Level Rear Chevron (x = +1.7, z = -1.65, Level 2)
+  const soffitY2 = beamYFor(DECK_Y2) - BEAM_D / 2;
+  const apexY2 = soffitY2 - 0.1;
+  const footY2 = DECK_Y + 0.1;
+  const rise2 = apexY2 - footY2;
+  const lenChevron2 = Math.hypot(halfBayX, rise2);
+
+  [-1, 1].forEach((dir, i) => {
+    parts.push({
+      kind: "pipe",
+      a: BRACE_R,
+      b: lenChevron2,
+      c: BRACE_R,
+      final: [1.7 + (dir * halfBayX) / 2, (apexY2 + footY2) / 2, -1.65],
+      finalRot: [0, 0, dir * Math.atan2(halfBayX, rise2)],
+      axisY: true,
+      startTime: baseTime + 0.38 + i * 0.05,
+      duration: 0.45,
+      dropHeight: 1.6,
+    });
+  });
+  parts.push({
+    kind: "gusset",
+    a: 0.78,
+    b: 0.44,
+    c: 0.03,
+    final: [1.7, soffitY2 - 0.22, -1.65],
+    finalRot: [0, 0, 0],
+    axisY: false,
+    startTime: baseTime + 0.35,
     duration: 0.4,
     dropHeight: 1.4,
   });
@@ -407,11 +605,11 @@ function pushBracing(parts: Part[], footY: number, soffitY: number, baseTime: nu
  * Fixed vertical ladder with fall-arrest cable system.
  */
 function pushLadder(parts: Part[], bolts: Bolt[], baseTime: number) {
-  const LADDER_X = -1.65;
-  const LADDER_Z = PLAT_Z + 0.36;
+  const LADDER_X = 0.45;
+  const LADDER_Z = 1.75 + 0.36;
   const STILE_GAP = 0.48;
   const TOP = DECK_Y2 + 1.1;
-  const BOTTOM = 0.06;
+  const BOTTOM = DECK_Y + 0.06;
   const height = TOP - BOTTOM;
 
   // Stiles
@@ -450,7 +648,7 @@ function pushLadder(parts: Part[], bolts: Bolt[], baseTime: number) {
   }
 
   // Brackets
-  [1.0, DECK_Y - 0.25, DECK_Y + 1.35, DECK_Y2 - 0.4].forEach((y, i) => {
+  [DECK_Y + 0.45, DECK_Y + 1.6, DECK_Y2 - 0.3].forEach((y, i) => {
     parts.push({
       kind: "plate",
       a: STILE_GAP + 0.18,
@@ -640,16 +838,10 @@ function pushFlight(parts: Part[], bolts: Bolt[], flight: Flight, baseTime: numb
 }
 
 /**
- * Guardrails around one deck level.
+ * Guardrails around the multi-bay levels.
  */
-function pushRailings(parts: Part[], deckY: number, openDir: 1 | -1, baseTime: number) {
+function pushMultiBayRailings(parts: Part[], baseTime: number) {
   const postH = 1.15;
-  const postY = deckY + postH / 2;
-  const railTop = railTopFor(deckY);
-  const railMid = railMidFor(deckY);
-  const returnX = openDir * RETURN_X;
-  const closedX = -openDir * 2.5;
-
   const rail = (
     final: Vec3,
     length: number,
@@ -671,48 +863,76 @@ function pushRailings(parts: Part[], deckY: number, openDir: 1 | -1, baseTime: n
     dropHeight,
   });
 
-  // Vertical posts
-  let postCount = 0;
-  for (const sz of [-1, 1]) {
-    for (const x of [closedX, -1.25, 0, 1.25, returnX]) {
-      parts.push(rail([x, postY, sz * 1.55], postH, [0, 0, 0], baseTime + postCount * 0.025, 0.4, 1.2));
-      postCount += 1;
+  // Level 1 Railings (deckY = DECK_Y)
+  const postY1 = DECK_Y + postH / 2;
+  const railTop1 = railTopFor(DECK_Y);
+  const railMid1 = railMidFor(DECK_Y);
+
+  let pCount = 0;
+  // Front & Back vertical posts along Level 1
+  for (const sz of [-1.75, 1.75]) {
+    for (const x of [-3.5, -2.3, -1.1, 0.0, 1.1, 2.3, 3.5]) {
+      parts.push(rail([x, postY1, sz], postH, [0, 0, 0], baseTime + pCount * 0.02, 0.4, 1.2));
+      pCount += 1;
     }
-    parts.push(rail([returnX, postY, sz * STAIR_RAIL_Z], postH, [0, 0, 0], baseTime + postCount * 0.025, 0.4, 1.2));
-    postCount += 1;
+    // Stair return posts
+    parts.push(rail([3.5, postY1, sz * STAIR_RAIL_Z], postH, [0, 0, 0], baseTime + pCount * 0.02, 0.4, 1.2));
+    pCount += 1;
   }
-  for (const z of [-0.75, 0.75]) {
-    parts.push(rail([closedX, postY, z], postH, [0, 0, 0], baseTime + postCount * 0.025, 0.4, 1.2));
-    postCount += 1;
+  // Left end closed posts
+  for (const z of [-0.85, 0.85]) {
+    parts.push(rail([-3.5, postY1, z], postH, [0, 0, 0], baseTime + pCount * 0.02, 0.4, 1.2));
+    pCount += 1;
   }
 
-  // Front and back horizontal rails
-  let railCount = 0;
-  for (const sz of [-1, 1]) {
-    for (const y of [railTop, railMid]) {
-      parts.push(rail([openDir * 0.06, y, sz * 1.55], 5.15, [0, 0, Math.PI / 2], baseTime + 0.3 + railCount * 0.03, 0.45, 1.4));
-      railCount += 1;
+  // Level 1 Front and Back horizontal rails
+  let rCount = 0;
+  for (const sz of [-1.75, 1.75]) {
+    for (const y of [railTop1, railMid1]) {
+      parts.push(rail([0, y, sz], 7.0, [0, 0, Math.PI / 2], baseTime + 0.3 + rCount * 0.025, 0.45, 1.4));
+      rCount += 1;
     }
   }
-  // Closed end
-  for (const y of [railTop, railMid]) {
-    parts.push(rail([closedX, y, 0], 3.1, [Math.PI / 2, 0, 0], baseTime + 0.38 + railCount * 0.03, 0.45, 1.4));
-    railCount += 1;
+  // Left end rails
+  for (const y of [railTop1, railMid1]) {
+    parts.push(rail([-3.5, y, 0], 3.5, [Math.PI / 2, 0, 0], baseTime + 0.38 + rCount * 0.025, 0.45, 1.4));
+    rCount += 1;
   }
-  // Returns
-  const returnLen = 1.55 - STAIR_RAIL_Z;
+  // Stair returns
+  const returnLen = 1.75 - STAIR_RAIL_Z;
   for (const sz of [-1, 1]) {
-    for (const y of [railTop, railMid]) {
+    for (const y of [railTop1, railMid1]) {
       parts.push(
-        rail([returnX, y, (sz * (1.55 + STAIR_RAIL_Z)) / 2], returnLen, [Math.PI / 2, 0, 0], baseTime + 0.42 + railCount * 0.03, 0.45, 1.4)
+        rail([3.5, y, (sz * (1.75 + STAIR_RAIL_Z)) / 2], returnLen, [Math.PI / 2, 0, 0], baseTime + 0.42 + rCount * 0.025, 0.45, 1.4)
       );
-      railCount += 1;
+      rCount += 1;
     }
+  }
+
+  // Level 2 Railings (deckY = DECK_Y2, spanning right bay x = 0 to 3.5)
+  const postY2 = DECK_Y2 + postH / 2;
+  const railTop2 = railTopFor(DECK_Y2);
+  const railMid2 = railMidFor(DECK_Y2);
+
+  for (const sz of [-1.75, 1.75]) {
+    for (const x of [0.0, 1.15, 2.3, 3.5]) {
+      parts.push(rail([x, postY2, sz], postH, [0, 0, 0], baseTime + 0.45 + pCount * 0.015, 0.4, 1.2));
+      pCount += 1;
+    }
+    for (const y of [railTop2, railMid2]) {
+      parts.push(rail([1.75, y, sz], 3.5, [0, 0, Math.PI / 2], baseTime + 0.55 + rCount * 0.02, 0.45, 1.4));
+      rCount += 1;
+    }
+  }
+  for (const y of [railTop2, railMid2]) {
+    parts.push(rail([3.5, y, 0], 3.5, [Math.PI / 2, 0, 0], baseTime + 0.6 + rCount * 0.02, 0.45, 1.4));
+    rCount += 1;
   }
 }
 
 export interface SceneTheme {
   steel: string;
+  secondary: string;
   steelDark: string;
   accent: string;
   bolt: string;
@@ -739,17 +959,18 @@ function PartMeshes({
     case "wf":
       return (
         <>
-          {/* Top Flange */}
+          {/* Top Flange (Primary structural steel) */}
           <mesh geometry={geo.box} material={steel} position={[0, b / 2, 0]} scale={[a, 0.058, c]} />
-          {/* Bottom Flange */}
+          {/* Bottom Flange (Primary structural steel) */}
           <mesh geometry={geo.box} material={steel} position={[0, -b / 2, 0]} scale={[a, 0.058, c]} />
-          {/* Central Web (uses darker material for structural depth) */}
+          {/* Central Web (uses darker core material for structural depth) */}
           <mesh geometry={geo.box} material={mat.dark} scale={[a, b, 0.038]} />
         </>
       );
     case "hss":
       return (
         <>
+          {/* Column Outer Walls (Primary structural steel) */}
           <mesh geometry={geo.box} material={steel} scale={[a, b, c]} />
           {/* A darker inset on the end reads as the hollow tube wall profile. */}
           <mesh
@@ -761,21 +982,29 @@ function PartMeshes({
         </>
       );
     case "pipe":
+      return (
+        <mesh
+          geometry={geo.cyl}
+          material={part.accent ? mat.accent : mat.secondary}
+          scale={[a, b, c]}
+        />
+      );
     case "rail":
-      return <mesh geometry={geo.cyl} material={steel} scale={[a, b, c]} />;
+      return <mesh geometry={geo.cyl} material={mat.accent} scale={[a, b, c]} />;
     case "channel":
       return (
         <>
-          <mesh geometry={geo.box} material={steel} scale={[a, b, 0.042]} />
+          {/* Secondary channel body (Purlins, Kickplates) */}
+          <mesh geometry={geo.box} material={mat.secondary} scale={[a, b, 0.042]} />
           <mesh
             geometry={geo.box}
-            material={steel}
+            material={mat.secondary}
             position={[0, b / 2 - 0.03, (part.flip ? -1 : 1) * (c / 2)]}
             scale={[a, 0.065, c]}
           />
           <mesh
             geometry={geo.box}
-            material={steel}
+            material={mat.secondary}
             position={[0, -(b / 2 - 0.03), (part.flip ? -1 : 1) * (c / 2)]}
             scale={[a, 0.065, c]}
           />
@@ -785,14 +1014,15 @@ function PartMeshes({
       return (
         <mesh
           geometry={geo.gusset}
-          material={steel}
+          material={mat.secondary}
           scale={[a, part.flip ? -b : b, c]}
         />
       );
     case "tread":
       return (
         <>
-          <mesh geometry={geo.box} material={mat.steel} scale={[a, b, c]} />
+          {/* Step body */}
+          <mesh geometry={geo.box} material={mat.secondary} scale={[a, b, c]} />
           {/* High-visibility safety nosing on the leading step edge */}
           <mesh
             geometry={geo.box}
@@ -804,7 +1034,7 @@ function PartMeshes({
       );
     case "plate":
     default:
-      return <mesh geometry={geo.box} material={steel} scale={[a, b, c]} />;
+      return <mesh geometry={geo.box} material={part.accent ? mat.accent : mat.secondary} scale={[a, b, c]} />;
   }
 }
 
@@ -866,6 +1096,7 @@ interface Geometries {
 
 interface Materials {
   steel: THREE.MeshStandardMaterial;
+  secondary: THREE.MeshStandardMaterial;
   dark: THREE.MeshStandardMaterial;
   accent: THREE.MeshStandardMaterial;
   bolt: THREE.MeshStandardMaterial;
@@ -910,12 +1141,18 @@ function Assembly({
     () => ({
       steel: new THREE.MeshStandardMaterial({
         color: "#94A1B0",
-        metalness: 0.44,
-        roughness: 0.28,
-        envMapIntensity: 1.55,
+        metalness: 0.46,
+        roughness: 0.26,
+        envMapIntensity: 1.6,
+      }),
+      secondary: new THREE.MeshStandardMaterial({
+        color: "#626F7D",
+        metalness: 0.35,
+        roughness: 0.46,
+        envMapIntensity: 1.1,
       }),
       dark: new THREE.MeshStandardMaterial({
-        color: "#505D6B",
+        color: "#48535E",
         metalness: 0.52,
         roughness: 0.38,
         envMapIntensity: 1.3,
@@ -1042,7 +1279,7 @@ function Assembly({
     // ── 4. Dynamic Camera Choreography & Framing ───────────────────────────
     const aspect = state.size.width / Math.max(1, state.size.height);
     // Responsive scaling ensures the full model is framed with breathing room on all screens
-    const aspectFactor = aspect < 0.8 ? Math.max(1.15, 0.95 / aspect) : aspect < 1.2 ? 1.12 : 1.0;
+    const aspectFactor = aspect < 0.8 ? Math.max(1.36, 1.10 / aspect) : aspect < 1.2 ? 1.20 : 1.0;
 
     const settleT = clamp01(t / completeAt);
     const ease = easeInOutCubic(settleT);
@@ -1051,9 +1288,9 @@ function Assembly({
     const shadowT = clamp01((t - 0.6) / (completeAt - 0.6));
     shadowOpacityRef.current = easeInOutCubic(shadowT);
 
-    const orbit = 1.22 - ease * 0.24 + Math.max(0, t - completeAt) * 0.065;
-    const radius = (19.0 - ease * 6.0) * aspectFactor;
-    const height = (9.6 - ease * 3.6) * aspectFactor;
+    const orbit = 1.22 - ease * 0.22 + Math.max(0, t - completeAt) * 0.055;
+    const radius = (23.5 - ease * 6.5) * aspectFactor;
+    const height = (11.2 - ease * 4.0) * aspectFactor;
 
     // Subtle pointer parallax for organic depth
     const parallaxY = state.pointer.y * 0.35;
@@ -1063,7 +1300,7 @@ function Assembly({
       height + parallaxY,
       Math.sin(orbit) * radius
     );
-    lookAt.set(0.18, 3.25, 0);
+    lookAt.set(0.25, 2.95, 0);
     camera.lookAt(lookAt);
 
     // ── 5. Split Theme Reveal Wipe ─────────────────────────────────────────
@@ -1208,25 +1445,25 @@ function StructureShadows({
       <mesh
         geometry={planeGeo}
         material={mainMat}
-        position={[0.35, 0, 0]}
+        position={[0.2, 0, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
-        scale={[7.8, 5.2, 1]}
+        scale={[10.8, 5.8, 1]}
       />
       {/* Stair run diffuse shadow */}
       <mesh
         geometry={planeGeo}
         material={mainMat}
-        position={[3.6, 0, 0]}
+        position={[5.1, 0, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
-        scale={[3.4, 2.4, 1]}
+        scale={[3.6, 2.4, 1]}
       />
-      {/* Individual column base plate contact spots */}
-      {SIGNS.map(([sx, sz], i) => (
+      {/* Individual column base plate contact spots (6 columns) */}
+      {COLUMNS_6.map(([gx, gz], i) => (
         <mesh
           key={`col-spot-${i}`}
           geometry={planeGeo}
           material={spotMat}
-          position={[sx * BAY_X, 0.001, sz * BAY_Z]}
+          position={[gx, 0.001, gz]}
           rotation={[-Math.PI / 2, 0, 0]}
           scale={[1.2, 1.2, 1]}
         />
@@ -1235,7 +1472,7 @@ function StructureShadows({
       <mesh
         geometry={planeGeo}
         material={spotMat}
-        position={[4.0, 0.001, 0]}
+        position={[6.4, 0.001, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
         scale={[1.4, 1.5, 1]}
       />
@@ -1277,6 +1514,7 @@ function SplitRender({
 
     const apply = (palette: SceneTheme, isLightPass: boolean) => {
       mat.steel.color.set(palette.steel);
+      mat.secondary.color.set(palette.secondary);
       mat.dark.color.set(palette.steelDark);
       mat.accent.color.set(palette.accent);
       mat.bolt.color.set(palette.bolt);

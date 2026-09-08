@@ -35,48 +35,55 @@ export async function PUT(request: Request, { params }: Params) {
     return jsonError("Check the fields below.", 400, { fields: fieldErrors(parsed.error) });
   }
 
-  const existing = await one(db.select().from(leaders).where(eq(leaders.id, params.id)));
+  const { getLeadersCollection, getMediaAssetsCollection } = await import("@/backend/db");
+  const leadersCol = await getLeadersCollection();
+  const mediaCol = await getMediaAssetsCollection();
+
+  const existing = await leadersCol.findOne({ _id: params.id });
   if (!existing) return jsonError("Not found.", 404);
 
   const data = parsed.data;
 
   if (data.photoId && data.photoId !== existing.photoId) {
-    const photo = await one(db.select().from(mediaAssets).where(eq(mediaAssets.id, data.photoId)));
+    const photo = await mediaCol.findOne({ _id: data.photoId });
     if (!photo) return jsonError("That photo could not be found. Upload it again.", 400);
   }
 
-  const leader = await one(db
-    .update(leaders)
-    .set({
-      name: data.name,
-      title: data.title,
-      credentials: data.credentials,
-      bio: data.bio,
-      location: data.location,
-      email: data.email || null,
-      linkedinUrl: data.linkedinUrl || null,
-      photoId: data.photoId || null,
-      initials: initialsFrom(data.name),
-      published: data.published,
-      sortOrder: data.sortOrder,
-      updatedAt: new Date(),
-    })
-    .where(eq(leaders.id, params.id))
-    .returning());
+  const nowDate = new Date();
+  await leadersCol.updateOne(
+    { _id: params.id },
+    {
+      $set: {
+        name: data.name,
+        title: data.title,
+        credentials: data.credentials,
+        bio: data.bio,
+        location: data.location,
+        email: data.email || null,
+        linkedinUrl: data.linkedinUrl || null,
+        photoId: data.photoId || null,
+        initials: initialsFrom(data.name),
+        published: data.published,
+        sortOrder: data.sortOrder,
+        updatedAt: nowDate,
+      },
+    }
+  );
 
-  if (!leader) return jsonError("Not found.", 404);
+  const updated = await leadersCol.findOne({ _id: params.id });
+  if (!updated) return jsonError("Not found.", 404);
 
   await audit({
     action: "leader.updated",
     userId: gate.user.id,
     actorInfo: gate.user.email,
     entity: "Leader",
-    entityId: leader.id,
-    meta: { name: leader.name },
+    entityId: params.id,
+    meta: { name: updated.name },
   });
 
   revalidatePath("/");
-  return jsonOk({ leader });
+  return jsonOk({ leader: { ...updated, id: updated._id } });
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -85,10 +92,13 @@ export async function DELETE(request: Request, { params }: Params) {
 
   if (!validId(params.id)) return jsonError("Not found.", 404);
 
-  const existing = await one(db.select().from(leaders).where(eq(leaders.id, params.id)));
+  const { getLeadersCollection } = await import("@/backend/db");
+  const leadersCol = await getLeadersCollection();
+
+  const existing = await leadersCol.findOne({ _id: params.id });
   if (!existing) return jsonError("Not found.", 404);
 
-  await db.delete(leaders).where(eq(leaders.id, params.id));
+  await leadersCol.deleteOne({ _id: params.id });
 
   await audit({
     action: "leader.deleted",
@@ -102,3 +112,4 @@ export async function DELETE(request: Request, { params }: Params) {
   revalidatePath("/");
   return jsonOk({ deleted: params.id });
 }
+

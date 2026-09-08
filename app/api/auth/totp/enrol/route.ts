@@ -1,6 +1,5 @@
 import QRCode from "qrcode";
-import { eq } from "drizzle-orm";
-import { adminUsers, db, sessions } from "@/backend/db";
+import { getAdminUsersCollection, getSessionsCollection } from "@/backend/db";
 import { audit } from "@/backend/security/audit";
 import { verifyCsrf } from "@/backend/security/csrf";
 import { jsonError, jsonOk } from "@/backend/security/guard";
@@ -37,9 +36,11 @@ export async function GET() {
   if (auth.user.totpEnabled) return jsonError("Two-factor authentication is already on.", 409);
 
   const secret = generateTotpSecret();
-  await db.update(adminUsers)
-    .set({ totpSecret: encryptSecret(secret), updatedAt: new Date() })
-    .where(eq(adminUsers.id, auth.user.id));
+  const adminUsers = await getAdminUsersCollection();
+  await adminUsers.updateOne(
+    { _id: auth.user.id },
+    { $set: { totpSecret: encryptSecret(secret), updatedAt: new Date() } }
+  );
 
   const qrDataUrl = await QRCode.toDataURL(totpUri(secret, auth.user.email), {
     margin: 1,
@@ -81,16 +82,19 @@ export async function POST(request: Request) {
     return jsonError("That code wasn't accepted. Check your device's clock and try again.", 400);
   }
 
-  const { codes, serialisedHashes } = await generateRecoveryCodes();
-
-  await db.update(adminUsers)
-    .set({ totpEnabled: true, totpRecoveryHashes: serialisedHashes, updatedAt: new Date() })
-    .where(eq(adminUsers.id, auth.user.id));
+  const { codes, hashes } = await generateRecoveryCodes();
+  const adminUsers = await getAdminUsersCollection();
+  await adminUsers.updateOne(
+    { _id: auth.user.id },
+    { $set: { totpEnabled: true, totpRecoveryHashes: hashes, updatedAt: new Date() } }
+  );
 
   // The session that just enrolled has now satisfied both factors.
-  await db.update(sessions)
-    .set({ fullyAuthenticated: true })
-    .where(eq(sessions.id, auth.session.id));
+  const sessions = await getSessionsCollection();
+  await sessions.updateOne(
+    { _id: auth.session.id },
+    { $set: { fullyAuthenticated: true } }
+  );
 
   await audit({ action: "totp.enrolled", userId: auth.user.id, actorInfo: auth.user.email });
 
@@ -120,11 +124,14 @@ export async function DELETE(request: Request) {
     return jsonError("That password wasn't recognised.", 401);
   }
 
-  await db.update(adminUsers)
-    .set({ totpEnabled: false, totpSecret: null, totpRecoveryHashes: null, updatedAt: new Date() })
-    .where(eq(adminUsers.id, auth.user.id));
-  revokeAllSessions(auth.user.id, auth.session.id);
+  const adminUsers = await getAdminUsersCollection();
+  await adminUsers.updateOne(
+    { _id: auth.user.id },
+    { $set: { totpEnabled: false, totpSecret: null, totpRecoveryHashes: null, updatedAt: new Date() } }
+  );
+  await revokeAllSessions(auth.user.id, auth.session.id);
 
   await audit({ action: "totp.disabled", userId: auth.user.id, actorInfo: auth.user.email });
   return jsonOk({ disabled: true });
 }
+

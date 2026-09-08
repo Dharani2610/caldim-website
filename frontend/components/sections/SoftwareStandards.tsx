@@ -44,7 +44,7 @@ export default function SoftwareStandards() {
               {softwareLogos.map((logo, index) => (
                 <Reveal key={logo.src} delay={(index + 1) * 0.1}>
                   <div
-                    className="group relative flex h-28 sm:h-32 w-full items-center justify-center rounded-2xl border border-slate-200/85 bg-white p-5 sm:p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06)] transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_14px_30px_-6px_rgba(0,0,0,0.14)]"
+                    className="card-surface group relative flex h-28 sm:h-32 w-full items-center justify-center rounded-2xl border border-blueprint bg-steel-950/60 p-5 sm:p-6 transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-blueprint-light hover:bg-steel-900/80"
                   >
                     <Image
                       src={logo.src}

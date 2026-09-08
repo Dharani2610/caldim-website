@@ -24,10 +24,10 @@ export default function Footer({ services }: { services: ServiceContent[] }) {
         <div className="mb-12 flex items-start justify-between">
           <div className="group flex items-center gap-3" style={{ perspective: "400px" }}>
             <Image
-              src="/images/caldim-logo.svg"
+              src="/images/caldim-logo.png"
               alt="Caldim Engineering Services logo"
-              width={28}
-              height={26}
+              width={76}
+              height={40}
               className="h-10 w-auto transition-transform duration-300 ease-out-expo group-hover:[transform:rotateY(-12deg)_rotateX(6deg)_scale(1.08)] md:h-12"
               style={{ filter: "drop-shadow(0 2px 6px rgba(42,107,204,0.45))" }}
             />

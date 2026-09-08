@@ -1,10 +1,11 @@
 import "server-only";
-import { eq } from "drizzle-orm";
 import { authenticator } from "otplib";
-import { adminUsers, db, type AdminUser } from "@/backend/db";
+import { getAdminUsersCollection, type AdminUserDoc } from "@/backend/db";
 import { env } from "@/backend/env";
 import { decrypt, encrypt } from "@/backend/security/crypto";
 import { generateRecoveryCode, hashPassword, verifyPassword } from "@/backend/security/password";
+
+export type AdminUser = AdminUserDoc & { id: string };
 
 /**
  * Time-based one-time passwords (RFC 6238) — the second factor for admin
@@ -48,17 +49,21 @@ export function decryptSecret(stored: string): string | null {
   }
 }
 
+
+
 export interface RecoveryCodeBundle {
   /** Plaintext codes — shown to the user exactly once, never stored. */
   codes: string[];
-  /** argon2id digests, serialised for the `totpRecoveryHashes` column. */
+  /** argon2id digests array. */
+  hashes: string[];
+  /** argon2id digests, serialised for JSON storage if needed. */
   serialisedHashes: string;
 }
 
 export async function generateRecoveryCodes(count = 10): Promise<RecoveryCodeBundle> {
   const codes = Array.from({ length: count }, generateRecoveryCode);
   const hashes = await Promise.all(codes.map((code) => hashPassword(code)));
-  return { codes, serialisedHashes: JSON.stringify(hashes) };
+  return { codes, hashes, serialisedHashes: JSON.stringify(hashes) };
 }
 
 /**
@@ -69,9 +74,15 @@ export async function redeemRecoveryCode(user: AdminUser, submitted: string): Pr
   if (!user.totpRecoveryHashes) return false;
 
   let hashes: string[];
-  try {
-    hashes = JSON.parse(user.totpRecoveryHashes);
-  } catch {
+  if (Array.isArray(user.totpRecoveryHashes)) {
+    hashes = user.totpRecoveryHashes;
+  } else if (typeof user.totpRecoveryHashes === "string") {
+    try {
+      hashes = JSON.parse(user.totpRecoveryHashes);
+    } catch {
+      return false;
+    }
+  } else {
     return false;
   }
   if (!Array.isArray(hashes) || hashes.length === 0) return false;
@@ -82,9 +93,11 @@ export async function redeemRecoveryCode(user: AdminUser, submitted: string): Pr
     // eslint-disable-next-line no-await-in-loop
     if (await verifyPassword(hashes[i], normalised)) {
       const remaining = hashes.filter((_, index) => index !== i);
-      await db.update(adminUsers)
-        .set({ totpRecoveryHashes: JSON.stringify(remaining), updatedAt: new Date() })
-        .where(eq(adminUsers.id, user.id));
+      const adminUsers = await getAdminUsersCollection();
+      await adminUsers.updateOne(
+        { _id: user.id },
+        { $set: { totpRecoveryHashes: remaining, updatedAt: new Date() } }
+      );
       return true;
     }
   }
@@ -99,3 +112,4 @@ export async function redeemRecoveryCode(user: AdminUser, submitted: string): Pr
 export function totpRequiredFor(user: AdminUser): boolean {
   return user.totpEnabled || env.requireTotp;
 }
+

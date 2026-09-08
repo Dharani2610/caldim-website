@@ -45,6 +45,7 @@ const config: Config = {
         mark: {
           cool: withOpacity("--color-mark-cool"),
         },
+        safety: withOpacity("--color-orange-safety"),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       fontFamily: {

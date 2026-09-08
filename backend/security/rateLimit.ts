@@ -1,15 +1,14 @@
 import "server-only";
-import { and, eq, isNull, lt, or } from "drizzle-orm";
-import { db, one, rateLimits } from "@/backend/db";
+import { getRateLimitsCollection, isDatabaseConfigured } from "@/backend/db";
 import { hashIp } from "@/backend/security/crypto";
 import { clientIp } from "@/backend/security/session";
 
 /**
  * Persistent fixed-window rate limiting.
  *
- * Counters live in the database rather than process memory, so a restart
- * doesn't hand an attacker a fresh budget and the limit still holds if the app
- * is run with more than one worker.
+ * Counters live in MongoDB (rate_limits collection) rather than process memory,
+ * so a restart doesn't hand an attacker a fresh budget and the limit still
+ * holds if the app is run with more than one worker.
  */
 
 export interface RateLimitRule {
@@ -42,62 +41,118 @@ export interface RateLimitResult {
 /**
  * Consumes one unit against `rule` for `identifier`.
  *
- * Callers combine a per-account and a per-IP limit so that neither one noisy
- * address nor a distributed attempt against a single account slips through the
- * gap the other would leave.
+ * Uses atomic MongoDB operations so concurrent requests cannot race.
  */
 export async function consume(
   rule: RateLimitRule,
   identifier: string
 ): Promise<RateLimitResult> {
+  if (!isDatabaseConfigured()) {
+    // If DB is unconfigured, fail open for rate limiting so setup errors are caught properly elsewhere
+    return { allowed: true, remaining: rule.limit, retryAfter: 0 };
+  }
+
   const key = `${rule.name}:${identifier}`;
   const nowDate = new Date();
   const windowMs = rule.windowSeconds * 1000;
+  const blockMs = (rule.blockSeconds ?? rule.windowSeconds) * 1000;
+  const windowCutoff = new Date(nowDate.getTime() - windowMs);
+  const blockDate = new Date(nowDate.getTime() + blockMs);
+  const defaultTtl = new Date(nowDate.getTime() + Math.max(windowMs, blockMs) + 60_000);
 
-  const existing = await one(db.select().from(rateLimits).where(eq(rateLimits.key, key)));
+  const collection = await getRateLimitsCollection();
 
-  if (existing?.blockedUntil && existing.blockedUntil > nowDate) {
+  // Try to atomically increment an existing active unblocked window
+  const res = await collection.findOneAndUpdate(
+    {
+      _id: key,
+      windowStart: { $gte: windowCutoff },
+      $or: [
+        { blockedUntil: null },
+        { blockedUntil: { $lte: nowDate } },
+      ],
+    },
+    [
+      {
+        $set: {
+          count: { $add: ["$count", 1] },
+          updatedAt: nowDate,
+          blockedUntil: {
+            $cond: {
+              if: { $gt: [{ $add: ["$count", 1] }, rule.limit] },
+              then: blockDate,
+              else: null,
+            },
+          },
+          expiresAt: {
+            $cond: {
+              if: { $gt: [{ $add: ["$count", 1] }, rule.limit] },
+              then: new Date(blockDate.getTime() + 60_000),
+              else: defaultTtl,
+            },
+          },
+        },
+      },
+    ],
+    { returnDocument: "after" }
+  );
+
+  if (res) {
+    if (res.blockedUntil && res.blockedUntil > nowDate) {
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfter: Math.ceil((res.blockedUntil.getTime() - nowDate.getTime()) / 1000),
+      };
+    }
     return {
-      allowed: false,
-      remaining: 0,
-      retryAfter: Math.ceil((existing.blockedUntil.getTime() - nowDate.getTime()) / 1000),
+      allowed: true,
+      remaining: Math.max(0, rule.limit - res.count),
+      retryAfter: 0,
     };
   }
 
-  const windowExpired =
-    !existing || nowDate.getTime() - existing.windowStart.getTime() >= windowMs;
+  // If findOneAndUpdate didn't match, check if the record is currently blocked
+  const blockedDoc = await collection.findOne({
+    _id: key,
+    blockedUntil: { $gt: nowDate },
+  });
 
-  if (windowExpired) {
-    await db.insert(rateLimits)
-      .values({ key, count: 1, windowStart: nowDate, blockedUntil: null, updatedAt: nowDate })
-      .onConflictDoUpdate({
-        target: rateLimits.key,
-        set: { count: 1, windowStart: nowDate, blockedUntil: null, updatedAt: nowDate },
-      });
-    return { allowed: true, remaining: rule.limit - 1, retryAfter: 0 };
+  if (blockedDoc?.blockedUntil && blockedDoc.blockedUntil > nowDate) {
+    return {
+      allowed: false,
+      remaining: 0,
+      retryAfter: Math.ceil((blockedDoc.blockedUntil.getTime() - nowDate.getTime()) / 1000),
+    };
   }
 
-  const nextCount = existing.count + 1;
+  // Window either expired or record doesn't exist yet: start fresh window with count = 1
+  await collection.updateOne(
+    { _id: key },
+    {
+      $set: {
+        count: 1,
+        windowStart: nowDate,
+        blockedUntil: null,
+        expiresAt: defaultTtl,
+        updatedAt: nowDate,
+      },
+    },
+    { upsert: true }
+  );
 
-  if (nextCount > rule.limit) {
-    const blockMs = (rule.blockSeconds ?? rule.windowSeconds) * 1000;
-    const blockedUntil = new Date(nowDate.getTime() + blockMs);
-    await db.update(rateLimits)
-      .set({ count: nextCount, blockedUntil, updatedAt: nowDate })
-      .where(eq(rateLimits.key, key));
-    return { allowed: false, remaining: 0, retryAfter: Math.ceil(blockMs / 1000) };
-  }
-
-  await db.update(rateLimits)
-    .set({ count: nextCount, updatedAt: nowDate })
-    .where(eq(rateLimits.key, key));
-
-  return { allowed: true, remaining: rule.limit - nextCount, retryAfter: 0 };
+  return { allowed: true, remaining: rule.limit - 1, retryAfter: 0 };
 }
 
 /** Clears a counter — called after a successful sign-in. */
 export async function reset(rule: RateLimitRule, identifier: string): Promise<void> {
-  await db.delete(rateLimits).where(eq(rateLimits.key, `${rule.name}:${identifier}`));
+  if (!isDatabaseConfigured()) return;
+  try {
+    const collection = await getRateLimitsCollection();
+    await collection.deleteOne({ _id: `${rule.name}:${identifier}` });
+  } catch {
+    // Best-effort reset
+  }
 }
 
 /** Convenience: limit by the caller's (hashed) IP address. */
@@ -107,16 +162,12 @@ export async function consumeByIp(rule: RateLimitRule): Promise<RateLimitResult>
 
 /** Housekeeping: drop counters whose window closed a while ago. */
 export async function pruneRateLimits(): Promise<void> {
-  const nowDate = new Date();
-  const cutoff = new Date(nowDate.getTime() - 24 * 3600_000);
+  if (!isDatabaseConfigured()) return;
   try {
-    await db.delete(rateLimits)
-      .where(
-        and(
-          lt(rateLimits.windowStart, cutoff),
-          or(isNull(rateLimits.blockedUntil), lt(rateLimits.blockedUntil, nowDate))
-        ));
+    const collection = await getRateLimitsCollection();
+    await collection.deleteMany({ expiresAt: { $lt: new Date() } });
   } catch {
     // Housekeeping must never break a request.
   }
 }
+

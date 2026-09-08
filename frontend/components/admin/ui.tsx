@@ -42,7 +42,7 @@ export function Field({
 }
 
 const baseInput =
-  "w-full rounded-lg border border-blueprint bg-steel-900/50 px-3 py-2.5 text-sm text-paper outline-none transition-colors placeholder:text-paper-dim/50 focus:border-accent disabled:opacity-60";
+  "w-full rounded-xl border border-blueprint bg-steel-900/50 px-3.5 py-2.5 text-sm text-paper outline-none transition-colors placeholder:text-paper-dim/50 focus:border-accent disabled:opacity-60";
 
 export function TextInput({
   error,
@@ -90,7 +90,7 @@ export function Button({
   return (
     <button
       {...props}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${styles} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${styles} ${className}`}
     >
       {children}
     </button>

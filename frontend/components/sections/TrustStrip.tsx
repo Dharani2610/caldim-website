@@ -29,7 +29,7 @@ export default function TrustStrip() {
           {softwareLogos.map((logo, index) => (
             <Reveal key={logo.name} delay={0.1 + index * 0.08}>
               <div
-                className="group flex h-12 md:h-14 items-center justify-center rounded-xl bg-white px-4 md:px-5 py-2 shadow-[0_2px_10px_-2px_rgba(0,0,0,0.08)] border border-slate-200/85 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-3px_rgba(0,0,0,0.12)] shrink-0 min-w-[120px] md:min-w-[135px]"
+                className="card-surface group flex h-12 md:h-14 items-center justify-center rounded-xl border border-blueprint bg-steel-950/60 px-4 md:px-5 py-2 transition-all duration-300 hover:-translate-y-0.5 hover:border-blueprint-light hover:bg-steel-900/80 shrink-0 min-w-[120px] md:min-w-[135px]"
               >
                 <Image
                   src={logo.src}

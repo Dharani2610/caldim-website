@@ -1,18 +1,20 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
-import { and, eq, isNull, lt, ne, or } from "drizzle-orm";
 import {
-  adminUsers,
-  db,
+  getAdminUsersCollection,
+  getSessionsCollection,
   isDatabaseConfigured,
   newId,
-  one,
-  sessions,
-  type AdminUser,
-  type Session,
+  toAdminUser,
+  toSession,
+  type AdminUserDoc,
+  type SessionDoc,
 } from "@/backend/db";
 import { env } from "@/backend/env";
 import { hashIp, randomToken, sha256 } from "@/backend/security/crypto";
+
+export type AdminUser = AdminUserDoc & { id: string };
+export type Session = SessionDoc & { id: string };
 
 /**
  * Server-side sessions.
@@ -73,19 +75,22 @@ export async function createSession(
   const token = randomToken(32);
   const nowDate = new Date();
 
-  await db.insert(sessions)
-    .values({
-      id: newId(),
-      tokenHash: sha256(token),
-      userId,
-      fullyAuthenticated,
-      ipHash: hashIp(clientIp()),
-      userAgent: clientUserAgent(),
-      lastSeenAt: nowDate,
-      expiresAt: idleExpiry(nowDate),
-      absoluteExpiresAt: absoluteExpiry(nowDate),
-      createdAt: nowDate,
-    });
+  const sessions = await getSessionsCollection();
+  const sessionDoc: SessionDoc = {
+    _id: newId(),
+    tokenHash: sha256(token),
+    userId,
+    fullyAuthenticated,
+    ipHash: hashIp(clientIp()),
+    userAgent: clientUserAgent(),
+    lastSeenAt: nowDate,
+    expiresAt: idleExpiry(nowDate),
+    absoluteExpiresAt: absoluteExpiry(nowDate),
+    revokedAt: null,
+    createdAt: nowDate,
+  };
+
+  await sessions.insertOne(sessionDoc);
 
   cookies().set(sessionCookieName(), token, {
     httpOnly: true,
@@ -102,7 +107,11 @@ export async function createSession(
 
 /** Promotes a half-authenticated session once the second factor is satisfied. */
 export async function markFullyAuthenticated(sessionId: string): Promise<void> {
-  await db.update(sessions).set({ fullyAuthenticated: true }).where(eq(sessions.id, sessionId));
+  const sessions = await getSessionsCollection();
+  await sessions.updateOne(
+    { _id: sessionId },
+    { $set: { fullyAuthenticated: true } }
+  );
 }
 
 /**
@@ -123,16 +132,14 @@ export async function getSession({
   // fails *closed*: an unreachable database can never grant access.
   if (!isDatabaseConfigured()) return null;
 
-  const row = await one(db
-    .select()
-    .from(sessions)
-    .innerJoin(adminUsers, eq(sessions.userId, adminUsers.id))
-    .where(eq(sessions.tokenHash, sha256(token))));
+  const sessions = await getSessionsCollection();
+  const session = await sessions.findOne({ tokenHash: sha256(token) });
+  if (!session) return null;
 
-  if (!row) return null;
+  const adminUsers = await getAdminUsersCollection();
+  const user = await adminUsers.findOne({ _id: session.userId });
+  if (!user) return null;
 
-  const session = row.sessions;
-  const user = row.admin_users;
   const nowDate = new Date();
 
   const invalid =
@@ -144,7 +151,7 @@ export async function getSession({
   if (invalid) {
     // Revoke eagerly so an expired row can't be resurrected by a clock change.
     if (session.revokedAt === null) {
-      await db.update(sessions).set({ revokedAt: nowDate }).where(eq(sessions.id, session.id));
+      await sessions.updateOne({ _id: session._id }, { $set: { revokedAt: nowDate } });
     }
     return null;
   }
@@ -155,13 +162,15 @@ export async function getSession({
   // every request would be wasteful, so only refresh once a minute has passed.
   if (nowDate.getTime() - session.lastSeenAt.getTime() > 60_000) {
     const nextExpiry = new Date(
-      Math.min(idleExpiry(nowDate).getTime(), session.absoluteExpiresAt.getTime()));
-    await db.update(sessions)
-      .set({ lastSeenAt: nowDate, expiresAt: nextExpiry })
-      .where(eq(sessions.id, session.id));
+      Math.min(idleExpiry(nowDate).getTime(), session.absoluteExpiresAt.getTime())
+    );
+    await sessions.updateOne(
+      { _id: session._id },
+      { $set: { lastSeenAt: nowDate, expiresAt: nextExpiry } }
+    );
   }
 
-  return { session, user };
+  return { session: toSession(session), user: toAdminUser(user) };
 }
 
 /** Revokes the caller's session and clears the cookie. */
@@ -169,10 +178,16 @@ export async function destroySession(): Promise<void> {
   const name = sessionCookieName();
   const token = cookies().get(name)?.value;
 
-  if (token) {
-    await db.update(sessions)
-      .set({ revokedAt: new Date() })
-      .where(eq(sessions.tokenHash, sha256(token)));
+  if (token && isDatabaseConfigured()) {
+    try {
+      const sessions = await getSessionsCollection();
+      await sessions.updateOne(
+        { tokenHash: sha256(token) },
+        { $set: { revokedAt: new Date() } }
+      );
+    } catch {
+      // Best-effort database update on destroy
+    }
   }
 
   cookies().set(name, "", {
@@ -192,21 +207,23 @@ export async function revokeAllSessions(
   userId: string,
   exceptSessionId?: string
 ): Promise<number> {
-  const result = await db
-    .update(sessions)
-    .set({ revokedAt: new Date() })
-    .where(
-      and(
-        eq(sessions.userId, userId),
-        isNull(sessions.revokedAt),
-        exceptSessionId ? ne(sessions.id, exceptSessionId) : undefined
-      )
-    )
-    .returning({ id: sessions.id });
-  // better-sqlite3 reported affected rows on `.changes`; the Postgres driver
-  // does not, so the count comes from RETURNING instead — which is exact
-  // rather than driver-dependent.
-  return result.length;
+  if (!isDatabaseConfigured()) return 0;
+
+  const sessions = await getSessionsCollection();
+  const filter: Record<string, unknown> = {
+    userId,
+    revokedAt: null,
+  };
+
+  if (exceptSessionId) {
+    filter._id = { $ne: exceptSessionId };
+  }
+
+  const result = await sessions.updateMany(filter, {
+    $set: { revokedAt: new Date() },
+  });
+
+  return result.modifiedCount;
 }
 
 /** Housekeeping: drop rows that can no longer authenticate anything. */
@@ -214,9 +231,13 @@ export async function pruneExpiredSessions(): Promise<void> {
   const nowDate = new Date();
   const staleCutoff = new Date(nowDate.getTime() - 7 * 24 * 3600_000);
   try {
-    await db.delete(sessions)
-      .where(
-        or(lt(sessions.absoluteExpiresAt, nowDate), lt(sessions.revokedAt, staleCutoff)));
+    const sessions = await getSessionsCollection();
+    await sessions.deleteMany({
+      $or: [
+        { absoluteExpiresAt: { $lt: nowDate } },
+        { revokedAt: { $lt: staleCutoff } },
+      ],
+    });
   } catch {
     // Housekeeping must never break a request.
   }

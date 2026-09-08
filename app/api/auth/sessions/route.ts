@@ -1,5 +1,4 @@
-import { and, desc, eq, gt, isNull } from "drizzle-orm";
-import { db, sessions } from "@/backend/db";
+import { getSessionsCollection } from "@/backend/db";
 import { audit } from "@/backend/security/audit";
 import { guard, jsonOk } from "@/backend/security/guard";
 import { revokeAllSessions } from "@/backend/security/session";
@@ -12,26 +11,25 @@ export async function GET(request: Request) {
   const gate = await guard(request, { csrf: false });
   if (!gate.ok) return gate.response;
 
-  const rows = await db
-    .select({
-      id: sessions.id,
-      userAgent: sessions.userAgent,
-      lastSeenAt: sessions.lastSeenAt,
-      createdAt: sessions.createdAt,
-      absoluteExpiresAt: sessions.absoluteExpiresAt,
+  const sessions = await getSessionsCollection();
+  const rows = await sessions
+    .find({
+      userId: gate.user.id,
+      revokedAt: null,
+      expiresAt: { $gt: new Date() },
     })
-    .from(sessions)
-    .where(
-      and(
-        eq(sessions.userId, gate.user.id),
-        isNull(sessions.revokedAt),
-        gt(sessions.expiresAt, new Date())
-      )
-    )
-    .orderBy(desc(sessions.lastSeenAt));
+    .sort({ lastSeenAt: -1 })
+    .toArray();
 
   return jsonOk({
-    sessions: rows.map((row) => ({ ...row, current: row.id === gate.session.id })),
+    sessions: rows.map((row) => ({
+      id: row._id,
+      userAgent: row.userAgent,
+      lastSeenAt: row.lastSeenAt,
+      createdAt: row.createdAt,
+      absoluteExpiresAt: row.absoluteExpiresAt,
+      current: row._id === gate.session.id,
+    })),
   });
 }
 
@@ -40,7 +38,7 @@ export async function DELETE(request: Request) {
   const gate = await guard(request);
   if (!gate.ok) return gate.response;
 
-  const revoked = revokeAllSessions(gate.user.id, gate.session.id);
+  const revoked = await revokeAllSessions(gate.user.id, gate.session.id);
   await audit({
     action: "sessions.revoked",
     userId: gate.user.id,
@@ -50,3 +48,4 @@ export async function DELETE(request: Request) {
 
   return jsonOk({ revoked });
 }
+

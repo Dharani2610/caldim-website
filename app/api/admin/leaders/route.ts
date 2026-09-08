@@ -17,20 +17,32 @@ export async function GET(request: Request) {
   const gate = await guard(request, { csrf: false });
   if (!gate.ok) return gate.response;
 
-  const rows = await db
-    .select({ leader: leaders, photo: mediaAssets })
-    .from(leaders)
-    .leftJoin(mediaAssets, eq(leaders.photoId, mediaAssets.id))
-    .orderBy(asc(leaders.sortOrder), asc(leaders.createdAt));
+  try {
+    const { getLeadersCollection, getMediaAssetsCollection } = await import("@/backend/db");
+    const leadersCol = await getLeadersCollection();
+    const mediaCol = await getMediaAssetsCollection();
+    const rows = await leadersCol.find({}).sort({ sortOrder: 1, createdAt: 1 }).toArray();
+    const photoIds = rows.map((r) => r.photoId).filter((id): id is string => Boolean(id));
+    const photos =
+      photoIds.length > 0 ? await mediaCol.find({ _id: { $in: photoIds } }).toArray() : [];
+    const photoMap = new Map(photos.map((p) => [p._id, p]));
 
-  return jsonOk({
-    leaders: rows.map(({ leader, photo }) => ({
-      ...leader,
-      photoUrl: photo ? `/api/media/${photo.id}` : null,
-      photoAlt: photo?.altText ?? "",
-    })),
-  });
+    return jsonOk({
+      leaders: rows.map((leader) => {
+        const photo = leader.photoId ? photoMap.get(leader.photoId) : null;
+        return {
+          ...leader,
+          id: leader._id,
+          photoUrl: photo ? `/api/media/${photo._id}` : null,
+          photoAlt: photo?.altText ?? "",
+        };
+      }),
+    });
+  } catch {
+    return jsonOk({ leaders: [] });
+  }
 }
+
 
 export async function POST(request: Request) {
   const gate = await guard(request, { rateLimit: RULES.adminWrite });
@@ -48,7 +60,11 @@ export async function POST(request: Request) {
     return jsonError("Check the fields below.", 400, { fields: fieldErrors(parsed.error) });
   }
 
-  const existing = (await one(db.select({ value: count() }).from(leaders)))?.value ?? 0;
+  const { getLeadersCollection, getMediaAssetsCollection } = await import("@/backend/db");
+  const leadersCol = await getLeadersCollection();
+  const mediaCol = await getMediaAssetsCollection();
+
+  const existing = await leadersCol.countDocuments();
   if (existing >= MAX_LEADERS) {
     return jsonError(`You can have at most ${MAX_LEADERS} leadership entries.`, 409);
   }
@@ -57,42 +73,41 @@ export async function POST(request: Request) {
 
   // Verify the referenced photo exists rather than trusting the id.
   if (data.photoId) {
-    const photo = await one(db.select().from(mediaAssets).where(eq(mediaAssets.id, data.photoId)));
+    const photo = await mediaCol.findOne({ _id: data.photoId });
     if (!photo) return jsonError("That photo could not be found. Upload it again.", 400);
   }
 
   const nowDate = new Date();
-  const leader = await one(db
-    .insert(leaders)
-    .values({
-      id: newId(),
-      name: data.name,
-      title: data.title,
-      credentials: data.credentials,
-      bio: data.bio,
-      location: data.location,
-      email: data.email || null,
-      linkedinUrl: data.linkedinUrl || null,
-      photoId: data.photoId || null,
-      initials: initialsFrom(data.name),
-      published: data.published,
-      sortOrder: data.sortOrder || existing,
-      createdAt: nowDate,
-      updatedAt: nowDate,
-    })
-    .returning());
+  const leaderId = newId();
+  const leaderDoc = {
+    _id: leaderId,
+    name: data.name,
+    title: data.title,
+    credentials: data.credentials,
+    bio: data.bio,
+    location: data.location,
+    email: data.email || null,
+    linkedinUrl: data.linkedinUrl || null,
+    photoId: data.photoId || null,
+    initials: initialsFrom(data.name),
+    published: data.published,
+    sortOrder: data.sortOrder || existing,
+    createdAt: nowDate,
+    updatedAt: nowDate,
+  };
 
-  if (!leader) return jsonError("That profile could not be saved.", 500);
+  await leadersCol.insertOne(leaderDoc);
 
   await audit({
     action: "leader.created",
     userId: gate.user.id,
     actorInfo: gate.user.email,
     entity: "Leader",
-    entityId: leader.id,
-    meta: { name: leader.name },
+    entityId: leaderId,
+    meta: { name: leaderDoc.name },
   });
 
   revalidatePath("/");
-  return jsonOk({ leader }, 201);
+  return jsonOk({ leader: { ...leaderDoc, id: leaderId } }, 201);
 }
+

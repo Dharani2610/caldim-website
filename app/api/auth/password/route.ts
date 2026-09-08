@@ -1,5 +1,4 @@
-import { eq } from "drizzle-orm";
-import { adminUsers, db } from "@/backend/db";
+import { getAdminUsersCollection } from "@/backend/db";
 import { audit } from "@/backend/security/audit";
 import { verifyCsrf } from "@/backend/security/csrf";
 import { jsonError, jsonOk } from "@/backend/security/guard";
@@ -62,20 +61,24 @@ export async function POST(request: Request) {
     });
   }
 
-  await db.update(adminUsers)
-    .set({
-      passwordHash: await hashPassword(newPassword),
-      mustChangePassword: false,
-      passwordChangedAt: new Date(),
-      failedAttempts: 0,
-      lockedUntil: null,
-      updatedAt: new Date(),
-    })
-    .where(eq(adminUsers.id, auth.user.id));
+  const adminUsers = await getAdminUsersCollection();
+  await adminUsers.updateOne(
+    { _id: auth.user.id },
+    {
+      $set: {
+        passwordHash: await hashPassword(newPassword),
+        mustChangePassword: false,
+        passwordChangedAt: new Date(),
+        failedAttempts: 0,
+        lockedUntil: null,
+        updatedAt: new Date(),
+      },
+    }
+  );
 
   // Every other session was authorised by the old password, so none survive
   // the change. The current one is kept so the user isn't ejected mid-task.
-  const revoked = revokeAllSessions(auth.user.id, auth.session.id);
+  const revoked = await revokeAllSessions(auth.user.id, auth.session.id);
 
   await audit({
     action: "password.changed",
@@ -86,3 +89,4 @@ export async function POST(request: Request) {
 
   return jsonOk({ revokedSessions: revoked, next: "/admin" });
 }
+

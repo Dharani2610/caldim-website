@@ -49,26 +49,19 @@ export async function PUT(request: Request) {
     });
   }
 
-  // The value goes in as an object, not as a string. `value` is a jsonb
-  // column and Drizzle serialises it; stringifying first would store a JSON
-  // *string* containing JSON, which comes back as a string and fails
-  // validation on read — the block would silently revert to its default.
   const value = parsed.data;
   const nowDate = new Date();
 
-  await db
-    .insert(contentBlocks)
-    .values({
-      key: body.key,
-      value,
-      updatedById: gate.user.id,
-      updatedAt: nowDate,
-      createdAt: nowDate,
-    })
-    .onConflictDoUpdate({
-      target: contentBlocks.key,
-      set: { value, updatedById: gate.user.id, updatedAt: nowDate },
-    });
+  const { getContentBlocksCollection } = await import("@/backend/db");
+  const contentCol = await getContentBlocksCollection();
+  await contentCol.updateOne(
+    { _id: body.key },
+    {
+      $set: { value, updatedById: gate.user.id, updatedAt: nowDate },
+      $setOnInsert: { createdAt: nowDate },
+    },
+    { upsert: true }
+  );
 
   await audit({
     action: "content.updated",
@@ -92,7 +85,9 @@ export async function DELETE(request: Request) {
   const key = new URL(request.url).searchParams.get("key") ?? "";
   if (!isContentBlockKey(key)) return jsonError("Unknown content section.", 400);
 
-  await db.delete(contentBlocks).where(eq(contentBlocks.key, key));
+  const { getContentBlocksCollection } = await import("@/backend/db");
+  const contentCol = await getContentBlocksCollection();
+  await contentCol.deleteOne({ _id: key });
 
   await audit({
     action: "content.updated",
@@ -106,3 +101,4 @@ export async function DELETE(request: Request) {
   revalidatePath("/");
   return jsonOk({ key, reverted: true });
 }
+

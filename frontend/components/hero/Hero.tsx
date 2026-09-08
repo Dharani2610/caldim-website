@@ -1,15 +1,8 @@
-"use client";
-
+import Image from "next/image";
 import MagneticButton from "@/frontend/components/MagneticButton";
-import AssembleImage from "@/frontend/components/AssembleImage";
-import { useTheme } from "@/frontend/hooks/useTheme";
 import type { HeroContent } from "@/shared/content/types";
 
 export default function Hero({ hero }: { hero: HeroContent }) {
-  const theme = useTheme();
-  const heroImage =
-    theme === "light" ? "/images/hero-glow-frame-light.png" : "/images/hero-glow-frame.png";
-
   return (
     <section
       id="top"
@@ -62,14 +55,19 @@ export default function Hero({ hero }: { hero: HeroContent }) {
             </div>
           </div>
 
-          {/* The issued model, assembling from an exploded state on load. */}
+          {/* Right-side visual panel: Complete isometric structural steel building frame model */}
           <div className="relative z-[3] mx-auto w-full max-w-md lg:absolute lg:right-[-3%] lg:top-1/2 lg:mx-0 lg:w-[58%] lg:max-w-[900px] lg:-translate-y-[46%] xl:w-[54%]">
-            <AssembleImage
-              src={heroImage}
-              alt="Glowing wireframe of an isometric structural steel model assembling into place, full building frame with stairs and platforms"
-              width={1423}
-              height={875}
-            />
+            <div className="relative w-full aspect-[1418/840] overflow-hidden motion-safe:animate-floaty">
+              <Image
+                src="/images/iso-full-model.png"
+                alt="Detailed isometric wireframe view of a complete multi-story industrial structural steel building frame with columns, girders, bracing, purlins, and access stair towers"
+                width={1418}
+                height={840}
+                priority
+                sizes="(min-width: 1280px) 780px, (min-width: 1024px) 58vw, (min-width: 640px) 448px, 92vw"
+                className="h-full w-full object-contain [html.light_&]:mix-blend-multiply [html:not(.light)_&]:invert [html:not(.light)_&]:mix-blend-screen transition-transform duration-700 ease-out-expo hover:scale-[1.02]"
+              />
+            </div>
           </div>
         </div>
       </div>

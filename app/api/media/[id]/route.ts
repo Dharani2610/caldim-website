@@ -27,22 +27,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
     return new NextResponse("Not found", { status: 404 });
   }
 
-  const asset = await one(
-    db
-      .select({
-        publicId: mediaAssets.publicId,
-        resourceType: mediaAssets.resourceType,
-        checksum: mediaAssets.checksum,
-      })
-      .from(mediaAssets)
-      .where(eq(mediaAssets.id, params.id))
-  );
+  const { getMediaAssetsCollection } = await import("@/backend/db");
+  const mediaCol = await getMediaAssetsCollection();
+  const asset = await mediaCol.findOne({ _id: params.id });
 
   // `raw` is deliberately excluded: those are RFQ attachments, which are
   // reachable from the admin area only.
   if (!asset || (asset.resourceType !== "image" && asset.resourceType !== "video")) {
     return new NextResponse("Not found", { status: 404 });
   }
+
 
   const url = new URL(request.url);
   const width = Number(url.searchParams.get("w"));

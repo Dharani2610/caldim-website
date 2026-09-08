@@ -20,6 +20,8 @@
   --color-paper: 232 236 239;       /* primary text */
   --color-paper-dim: 167 176 184;   /* secondary text */
   --color-accent: 63 169 232;       /* brand accent (buttons, links, borders) */
+  --color-accent-vivid: 63 169 232; /* vivid brand accent for graphics */
+  --color-orange-safety: 249 115 22;/* secondary safety / compliance highlight */
   --color-glow: 63 169 232;         /* ambient halo behind the glowing drawings */
 
   /* Steel rendered in 3D and in drawing marks — reads as metal on dark. */
@@ -46,7 +48,9 @@
   --color-blueprint-light: 0 0 0;   /* hover borders, lighter dividers — black in light theme */
   --color-paper: 15 23 32;          /* primary text (dark on light) */
   --color-paper-dim: 82 97 111;     /* secondary text — darkened to clear 4.5:1 on the light ground */
-  --color-accent: 194 88 0;         /* #C25800 — the brand orange, darkened enough to read as text */
+  --color-accent: 30 93 191;        /* brand engineering blue (#1E5DBF), 5.76:1 contrast on light ground */
+  --color-accent-vivid: 42 107 204; /* core logo blue (#2A6BCC) for graphic fills */
+  --color-orange-safety: 234 88 12; /* secondary safety / compliance highlight (#EA580C) */
   --color-glow: 0 0 0;              /* black, matches the light-theme drawings (images only) */
 
   --color-steel-mark: 71 85 99;
@@ -54,24 +58,13 @@
 
   --tw-grid-line: rgba(15, 23, 32, 0.08);
 
-  --border-cert: rgba(0, 0, 0, 0.45);
-  --border-process-active: rgb(0, 0, 0);
+  --border-cert: rgba(30, 93, 191, 0.35);
+  --border-process-active: rgb(30, 93, 191);
   --border-btn-outline: rgba(0, 0, 0, 0.7);
-  --border-btn-solid: rgb(0, 0, 0);
+  --border-btn-solid: rgb(30, 93, 191);
 
   --shadow-card: 0 1px 2px rgba(15, 23, 32, 0.06), 0 12px 28px -18px rgba(15, 23, 32, 0.35);
   --shadow-card-hover: 0 2px 4px rgba(15, 23, 32, 0.08), 0 24px 44px -22px rgba(15, 23, 32, 0.45);
-}
-
-/* The bright #FC7C14 is retained for large graphics and fills, where its
-   contrast against the light ground is not a legibility question. Text and
-   icons use --color-accent above, which is the same hue taken dark enough to
-   pass AA at body sizes. */
-:root.light {
-  --color-accent-vivid: 252 124 20;
-}
-:root {
-  --color-accent-vivid: 63 169 232;
 }
 
 html {
@@ -92,23 +85,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* The custom crosshair replaces the system cursor only once JS has confirmed
-   a fine pointer and drawn it. Previously `cursor: none` was unconditional,
-   so a script error or a slow load left the page with no cursor at all. */
-html.has-custom-cursor body,
-html.has-custom-cursor body * {
-  cursor: none;
-}
-
-@media (max-width: 768px), (pointer: coarse) {
-  html.has-custom-cursor body,
-  html.has-custom-cursor body * {
-    cursor: auto;
-  }
-  .crosshair {
-    display: none;
-  }
-}
 
 ::selection {
   background: rgb(var(--color-accent));
@@ -201,45 +177,6 @@ p {
   border-radius: 2px;
 }
 
-/* Custom CAD-style crosshair cursor. */
-.crosshair {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 28px;
-  height: 28px;
-  pointer-events: none;
-  z-index: 9999;
-  transform: translate(-50%, -50%);
-  will-change: transform, width, height;
-  opacity: 0;
-  transition: opacity 0.2s ease, width 0.15s ease, height 0.15s ease;
-}
-
-html.has-custom-cursor .crosshair {
-  opacity: 1;
-}
-
-.crosshair::before,
-.crosshair::after {
-  content: "";
-  position: absolute;
-  background: rgb(var(--color-accent));
-}
-.crosshair::before {
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  transform: translateY(-50%);
-}
-.crosshair::after {
-  left: 50%;
-  top: 0;
-  height: 100%;
-  width: 1px;
-  transform: translateX(-50%);
-}
 
 /* Revision-cloud style divider. */
 .rev-divider {

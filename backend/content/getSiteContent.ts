@@ -65,68 +65,72 @@ function reportUnavailable(area: string, error: unknown) {
 export const getContentBlocks = cache(async (): Promise<ContentBlocks> => {
   const merged: ContentBlocks = structuredClone(defaultContent);
 
-  let rows: { key: string; value: unknown }[] = [];
   try {
-    rows = await db
-      .select({ key: contentBlocks.key, value: contentBlocks.value })
-      .from(contentBlocks);
+    const { getContentBlocksCollection, isDatabaseConfigured } = await import("@/backend/db");
+    if (!isDatabaseConfigured()) return merged;
+    const contentCol = await getContentBlocksCollection();
+    const rows = await contentCol.find({}).toArray();
+
+    for (const row of rows) {
+      if (!isContentBlockKey(row._id)) continue;
+      const parsed = contentBlockSchemas[row._id].safeParse(row.value);
+      if (parsed.success) {
+        (merged as Record<string, unknown>)[row._id] = parsed.data;
+      } else {
+        console.warn(`[content] stored block "${row._id}" failed validation — using default`);
+      }
+    }
   } catch (error) {
     reportUnavailable("content blocks", error);
-    return merged;
-  }
-
-  for (const row of rows) {
-    if (!isContentBlockKey(row.key)) continue;
-    // `value` is a jsonb column, so Postgres has already parsed it and
-    // guaranteed it is valid JSON — the try/catch that used to wrap
-    // JSON.parse here has nothing left to catch. Validation still happens,
-    // because valid JSON is not the same as the right shape.
-    const parsed = contentBlockSchemas[row.key].safeParse(row.value);
-    if (parsed.success) {
-      // The union across keys defeats narrowing; the schema map guarantees
-      // the value matches the key it was parsed with.
-      (merged as Record<string, unknown>)[row.key] = parsed.data;
-    } else {
-      console.warn(`[content] stored block "${row.key}" failed validation — using default`);
-    }
   }
 
   return merged;
 });
 
+
 export const getLeaders = cache(async (): Promise<LeaderView[]> => {
   try {
-    const rows = await db
-      .select({ leader: leaders, photo: mediaAssets })
-      .from(leaders)
-      .leftJoin(mediaAssets, eq(leaders.photoId, mediaAssets.id))
-      .where(eq(leaders.published, true))
-      .orderBy(asc(leaders.sortOrder), asc(leaders.createdAt));
+    const { getLeadersCollection, getMediaAssetsCollection, isDatabaseConfigured } =
+      await import("@/backend/db");
+    if (!isDatabaseConfigured()) return defaultLeaders;
+    const leadersCol = await getLeadersCollection();
+    const mediaCol = await getMediaAssetsCollection();
+    const rows = await leadersCol
+      .find({ published: true })
+      .sort({ sortOrder: 1, createdAt: 1 })
+      .toArray();
 
     if (rows.length === 0) return defaultLeaders;
 
-    return rows.map(({ leader, photo }) => ({
-      id: leader.id,
-      name: leader.name,
-      title: leader.title,
-      credentials: leader.credentials,
-      bio: leader.bio,
-      location: leader.location,
-      email: leader.email || null,
-      linkedinUrl: leader.linkedinUrl || null,
-      // Straight to the Cloudinary CDN, sized and format-negotiated for the
-      // card it lands in, rather than proxied back through this server.
-      photoUrl: photo
-        ? deliveryUrl(photo.publicId, photo.resourceType, { width: 640, height: 640 })
-        : null,
-      photoAlt: photo?.altText || `${leader.name}, ${leader.title}`,
-      initials: leader.initials || initialsFrom(leader.name),
-    }));
+    const photoIds = rows.map((r) => r.photoId).filter((id): id is string => Boolean(id));
+    const photos =
+      photoIds.length > 0 ? await mediaCol.find({ _id: { $in: photoIds } }).toArray() : [];
+    const photoMap = new Map(photos.map((p) => [p._id, p]));
+
+    return rows.map((leader) => {
+      const photo = leader.photoId ? photoMap.get(leader.photoId) : null;
+      return {
+        id: leader._id,
+        name: leader.name,
+        title: leader.title,
+        credentials: leader.credentials,
+        bio: leader.bio,
+        location: leader.location,
+        email: leader.email || null,
+        linkedinUrl: leader.linkedinUrl || null,
+        photoUrl: photo
+          ? deliveryUrl(photo.publicId, photo.resourceType, { width: 640, height: 640 })
+          : null,
+        photoAlt: photo?.altText || `${leader.name}, ${leader.title}`,
+        initials: leader.initials || initialsFrom(leader.name),
+      };
+    });
   } catch (error) {
     reportUnavailable("leadership", error);
     return defaultLeaders;
   }
 });
+
 
 export const getSiteContent = cache(async (): Promise<SiteContent> => {
   const [blocks, leaders, certificates] = await Promise.all([

@@ -74,6 +74,8 @@ export async function POST(request: Request) {
     accepted = secret ? verifyTotpCode(secret, parsed.data.code) : false;
   }
 
+
+
   if (!accepted) {
     await audit({
       action: "totp.challenge.failure",
@@ -85,13 +87,13 @@ export async function POST(request: Request) {
     return jsonError("That code wasn't accepted. Check your authenticator and try again.", 401);
   }
 
-  markFullyAuthenticated(session.id);
+  await markFullyAuthenticated(session.id);
   await Promise.all([reset(RULES.totp, `user:${user.id}`), reset(RULES.totp, `ip:${ipKey}`)]);
 
   if (usedRecovery) {
     // A recovery code means the authenticator is gone. Drop every other
     // session, so a device the user can no longer reach isn't left signed in.
-    revokeAllSessions(user.id, session.id);
+    await revokeAllSessions(user.id, session.id);
     await audit({ action: "totp.recovery_used", userId: user.id, actorInfo: user.email });
   }
 
@@ -102,3 +104,4 @@ export async function POST(request: Request) {
     usedRecovery,
   });
 }
+

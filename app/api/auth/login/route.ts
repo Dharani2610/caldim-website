@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { adminUsers, db, one } from "@/backend/db";
+import { getAdminUsersCollection, toAdminUser } from "@/backend/db";
 import { env } from "@/backend/env";
 import { audit } from "@/backend/security/audit";
 import { hashIp } from "@/backend/security/crypto";
@@ -72,7 +71,9 @@ export async function POST(request: Request) {
       { status: 429, headers: { "Retry-After": String(throttled.retryAfter) } });
   }
 
-  const user = await one(db.select().from(adminUsers).where(eq(adminUsers.email, email)));
+  const adminUsers = await getAdminUsersCollection();
+  const userDoc = await adminUsers.findOne({ email });
+  const user = userDoc ? toAdminUser(userDoc) : null;
 
   if (!user) {
     // Spend the ~50 ms an argon2 verification costs, so a missing account
@@ -101,15 +102,18 @@ export async function POST(request: Request) {
     const attempts = user.failedAttempts + 1;
     const shouldLock = attempts >= env.maxLoginAttempts;
 
-    await db.update(adminUsers)
-      .set({
-        failedAttempts: shouldLock ? 0 : attempts,
-        lockedUntil: shouldLock
-          ? new Date(Date.now() + env.lockoutMinutes * 60_000)
-          : user.lockedUntil,
-        updatedAt: new Date(),
-      })
-      .where(eq(adminUsers.id, user.id));
+    await adminUsers.updateOne(
+      { _id: user.id },
+      {
+        $set: {
+          failedAttempts: shouldLock ? 0 : attempts,
+          lockedUntil: shouldLock
+            ? new Date(Date.now() + env.lockoutMinutes * 60_000)
+            : user.lockedUntil,
+          updatedAt: new Date(),
+        },
+      }
+    );
 
     await audit({
       action: shouldLock ? "login.locked" : "login.failure",
@@ -123,9 +127,17 @@ export async function POST(request: Request) {
   }
 
   // Success — clear the failure counters for this account.
-  await db.update(adminUsers)
-    .set({ failedAttempts: 0, lockedUntil: null, lastLoginAt: new Date(), updatedAt: new Date() })
-    .where(eq(adminUsers.id, user.id));
+  await adminUsers.updateOne(
+    { _id: user.id },
+    {
+      $set: {
+        failedAttempts: 0,
+        lockedUntil: null,
+        lastLoginAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }
+  );
   await Promise.all([reset(RULES.login, `email:${email}`), reset(RULES.login, `ip:${ipKey}`)]);
 
   const needsSecondFactor = totpRequiredFor(user);
@@ -158,3 +170,4 @@ export async function POST(request: Request) {
     mustChangePassword: user.mustChangePassword,
   });
 }
+

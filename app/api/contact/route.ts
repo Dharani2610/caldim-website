@@ -130,41 +130,37 @@ export async function POST(request: Request) {
   }
 
   try {
-    const submission = await one(
-      db
-        .insert(contactSubmissions)
-        .values({
-          id: newId(),
-          name: data.name,
-          company: data.company,
-          email: data.email,
-          role: data.role,
-          projectType: data.projectType,
-          tonnage: data.tonnage,
-          timeline: data.timeline,
-          message: data.message,
-          attachmentId,
-          ipHash: hashIp(clientIp()),
-          userAgent: clientUserAgent(),
-          createdAt: new Date(),
-        })
-        .returning()
-    );
-
-    if (!submission) {
-      return jsonError("That enquiry could not be saved.", 500);
-    }
+    const { getContactSubmissionsCollection } = await import("@/backend/db");
+    const contactCol = await getContactSubmissionsCollection();
+    const submissionId = newId();
+    await contactCol.insertOne({
+      _id: submissionId,
+      name: data.name,
+      company: data.company,
+      email: data.email,
+      role: data.role,
+      projectType: data.projectType,
+      tonnage: data.tonnage,
+      timeline: data.timeline,
+      message: data.message,
+      attachmentId,
+      ipHash: hashIp(clientIp()),
+      userAgent: clientUserAgent(),
+      handled: false,
+      createdAt: new Date(),
+    });
 
     await audit({
       action: "contact.received",
       actorInfo: data.email,
       entity: "ContactSubmission",
-      entityId: submission.id,
+      entityId: submissionId,
       meta: { company: data.company, hasAttachment: Boolean(attachmentId) },
     });
   } catch (error) {
     return serviceUnavailableResponse("enquiry persistence failed", error);
   }
+
 
   // Non-blocking SMTP dispatch: fire-and-forget so caller is not delayed.
   // If SMTP is not configured, this cleanly skips with zero errors or log spam.

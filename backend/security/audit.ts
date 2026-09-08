@@ -1,6 +1,5 @@
 import "server-only";
-import { lt } from "drizzle-orm";
-import { auditLogs, db, newId } from "@/backend/db";
+import { getAuditLogsCollection, isDatabaseConfigured, newId } from "@/backend/db";
 import { hashIp } from "@/backend/security/crypto";
 import { clientIp, clientUserAgent } from "@/backend/security/session";
 
@@ -60,11 +59,6 @@ const REDACTED_KEYS = /pass|secret|token|code|hash|otp|key|cookie/i;
 
 /**
  * Returns a plain object, not a JSON string.
- *
- * `meta` is a jsonb column and Drizzle serialises it on the way in. Handing it
- * an already-stringified value would store a JSON *string* containing JSON,
- * which reads back as a string — queryable only with a second parse, and
- * useless to `meta->>'key'` in a Supabase query.
  */
 function sanitiseMeta(
   meta: Record<string, unknown> | undefined
@@ -92,21 +86,22 @@ function sanitiseMeta(
  * working request into a 500, and must not become a way to break the app.
  */
 export async function audit(input: AuditInput): Promise<void> {
+  if (!isDatabaseConfigured()) return;
   try {
-    await db.insert(auditLogs)
-      .values({
-        id: newId(),
-        action: input.action,
-        userId: input.userId ?? null,
-        actorInfo: (input.actorInfo ?? "").slice(0, 200),
-        entity: input.entity ?? "",
-        entityId: input.entityId ?? "",
-        outcome: input.outcome ?? "success",
-        ipHash: hashIp(clientIp()),
-        userAgent: clientUserAgent(),
-        meta: sanitiseMeta(input.meta),
-        createdAt: new Date(),
-      });
+    const auditLogs = await getAuditLogsCollection();
+    await auditLogs.insertOne({
+      _id: newId(),
+      action: input.action,
+      userId: input.userId ?? null,
+      actorInfo: (input.actorInfo ?? "").slice(0, 200),
+      entity: input.entity ?? "",
+      entityId: input.entityId ?? "",
+      outcome: input.outcome ?? "success",
+      ipHash: hashIp(clientIp()),
+      userAgent: clientUserAgent(),
+      meta: sanitiseMeta(input.meta),
+      createdAt: new Date(),
+    });
   } catch (error) {
     console.error("[audit] failed to record event", input.action, error);
   }
@@ -114,10 +109,14 @@ export async function audit(input: AuditInput): Promise<void> {
 
 /** Trims the trail to the retention window. */
 export async function pruneAuditLog(retentionDays = 365): Promise<void> {
+  if (!isDatabaseConfigured()) return;
   try {
-    await db.delete(auditLogs)
-      .where(lt(auditLogs.createdAt, new Date(Date.now() - retentionDays * 24 * 3600_000)));
+    const auditLogs = await getAuditLogsCollection();
+    await auditLogs.deleteMany({
+      createdAt: { $lt: new Date(Date.now() - retentionDays * 24 * 3600_000) },
+    });
   } catch {
     // Housekeeping must never break a request.
   }
 }
+
