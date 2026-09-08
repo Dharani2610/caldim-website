@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 176" width="200" height="176">
+  <defs>
+    <linearGradient id="cd" x1="0.05" y1="0" x2="0.8" y2="1">
+      <stop offset="0"    stop-color="#5E97F3"/>
+      <stop offset="0.45" stop-color="#2A6BCC"/>
+      <stop offset="1"    stop-color="#17479F"/>
+    </linearGradient>
+    <!-- Cuts the strokes vertically at the centre, so the two halves meet the
+         gap with a clean upright edge rather than the slanted end a stroke
+         cap would otherwise leave on the roof line. -->
+    <clipPath id="left"><rect x="0" y="0" width="96" height="176"/></clipPath>
+    <clipPath id="right"><rect x="104" y="0" width="96" height="176"/></clipPath>
+  </defs>
+  <g fill="none" stroke="url(#cd)" stroke-width="21" stroke-linejoin="round" stroke-linecap="butt">
+    <path d="M 100 11 L 22 62 L 22 158 L 100 158" clip-path="url(#left)"/>
+    <path d="M 100 11 L 178 62 L 178 158 L 100 158 Z" clip-path="url(#right)"/>
+  </g>
+</svg>
