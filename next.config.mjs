@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   // Don't advertise the framework and version in a response header; it is one
   // fewer hint for an automated scanner looking for a known-vulnerable build.
   poweredByHeader: false,

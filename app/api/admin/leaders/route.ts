@@ -1,6 +1,5 @@
 import { revalidatePath } from "next/cache";
-import { asc, count, eq } from "drizzle-orm";
-import { db, leaders, mediaAssets, newId, one } from "@/backend/db";
+import { newId } from "@/backend/db";
 import { initialsFrom } from "@/backend/content/defaults";
 import { audit } from "@/backend/security/audit";
 import { guard, jsonError, jsonOk } from "@/backend/security/guard";

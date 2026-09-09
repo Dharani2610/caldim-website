@@ -1,6 +1,4 @@
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
-import { contentBlocks, db } from "@/backend/db";
 import { getContentBlocks } from "@/backend/content/getSiteContent";
 import { audit } from "@/backend/security/audit";
 import { guard, jsonError, jsonOk } from "@/backend/security/guard";

@@ -176,7 +176,16 @@ export class DatabaseNotConfigured extends Error {
  * Allows the application to gracefully degrade when no database is configured.
  */
 export function isDatabaseConfigured(): boolean {
-  return Boolean(env.mongodbUri || env.databaseUrl);
+  const uri = env.mongodbUri;
+  const dbUrl = env.databaseUrl;
+  const isMongoValid = Boolean(uri && !uri.includes("localhost:27017") && uri.length > 10);
+  const isPostgresValid = Boolean(
+    dbUrl &&
+      !dbUrl.includes("aws-0-REGION") &&
+      !dbUrl.includes("PROJECT") &&
+      !dbUrl.includes("PASSWORD")
+  );
+  return isMongoValid || isPostgresValid;
 }
 
 /**
