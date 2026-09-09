@@ -6,6 +6,7 @@ import {
   db,
   contentBlocks,
   galleryItems,
+  isDatabaseConfigured,
   leaders,
   mediaAssets,
 } from "@/backend/db";
@@ -152,6 +153,7 @@ export const getSiteContent = cache(async (): Promise<SiteContent> => {
 export const getGalleryItems = cache(
   async (collection = "gallery"): Promise<GalleryItemView[]> => {
     try {
+      if (!isDatabaseConfigured()) return [];
       const rows = await db
         .select({ item: galleryItems, media: mediaAssets })
         .from(galleryItems)
@@ -191,6 +193,7 @@ export const getGalleryItems = cache(
 export const getCertificates = cache(
   async (): Promise<CertificateItemView[]> => {
     try {
+      if (!isDatabaseConfigured()) return defaultCertificates;
       const rows = await db
         .select({ item: galleryItems, media: mediaAssets })
         .from(galleryItems)

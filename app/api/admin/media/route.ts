@@ -1,5 +1,4 @@
-import { desc, eq } from "drizzle-orm";
-import { db, mediaAssets, newId, one } from "@/backend/db";
+import { newId } from "@/backend/db";
 import { env } from "@/backend/env";
 import { audit } from "@/backend/security/audit";
 import { guard, jsonError, jsonOk } from "@/backend/security/guard";

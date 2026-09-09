@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { db, mediaAssets, one } from "@/backend/db";
 import { deliveryUrl } from "@/backend/media/cloudinary";
 
 export const runtime = "nodejs";

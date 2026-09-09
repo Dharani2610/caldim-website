@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { contactSubmissions, db, isDatabaseConfigured, mediaAssets, newId, one } from "@/backend/db";
+import { db, isDatabaseConfigured, mediaAssets, newId, one } from "@/backend/db";
 import {
   isEmailConfigured,
   sendRfqAutoConfirmation,
