@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@/frontend/hooks/useTheme";
-import { useWebGL } from "@/frontend/components/three/useWebGL";
+import { useWebGLCapability } from "@/frontend/components/three/useWebGL";
 import type { SceneTheme } from "@/frontend/components/three/SteelAssemblyScene";
 
 const SteelAssemblyScene = dynamic(() => import("@/frontend/components/three/SteelAssemblyScene"), {
@@ -34,12 +34,12 @@ const THEMES: Record<"dark" | "light", SceneTheme> = {
 
 export default function SteelIntro() {
   const theme = useTheme();
-  const webgl = useWebGL();
+  const webgl = useWebGLCapability();
   const [assembled, setAssembled] = useState(false);
   const [runKey, setRunKey] = useState(0);
   const liveRef = useRef<HTMLParagraphElement>(null);
 
-  const canRender = webgl === "ready";
+  const canRender = webgl.state === "ready";
 
   useEffect(() => {
     if (!canRender) setAssembled(true);
@@ -80,21 +80,22 @@ export default function SteelIntro() {
             light={THEMES.light}
             splitEnabled={false}
             singlePalette="light"
+            tier={webgl.tier}
             runKey={runKey}
             onComplete={handleComplete}
           />
-        ) : (
+        ) : webgl.state === "unavailable" ? (
           <div className="flex h-full w-full items-center justify-end p-10 pr-16">
             <Image
               src={stillImage}
-              alt="Fully assembled structural steel platform model with columns, bracing, ladder and stairs"
+              alt="Fully assembled 4-5 story structural steel building with multi-tier staircase system, columns, framing and bracing"
               width={1423}
               height={875}
               priority
               className="max-h-full w-auto max-w-[min(92%,1100px)] object-contain opacity-90"
             />
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1440px] flex-1 flex-col px-6 pb-28 pt-32 md:px-10 md:pb-32 md:pt-36">
@@ -104,11 +105,7 @@ export default function SteelIntro() {
         </p>
 
         <div className="flex flex-1 flex-col justify-center">
-          <div
-            className={`max-w-3xl transition-all duration-1000 ease-out-expo ${
-              assembled ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
-            }`}
-          >
+          <div className="max-w-3xl">
             <h2
               id="intro-heading"
               className="font-display text-[clamp(2.25rem,4.4vw+1rem,4.75rem)] font-semibold leading-[1.04] tracking-[-0.025em] text-[#0F172A]"

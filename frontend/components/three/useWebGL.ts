@@ -3,44 +3,33 @@
 import { useEffect, useState } from "react";
 
 export type WebGLState = "checking" | "ready" | "unavailable";
+export type DetailTier = "full" | "reduced";
 
-/**
- * Decides whether it is reasonable to start a WebGL canvas here.
- *
- * Three things can make the answer no, and all of them matter on a marketing
- * site that people open on whatever device is to hand:
- *
- *  - the visitor asked for reduced motion, and a continuously rendering scene
- *    is exactly what that setting is about;
- *  - the browser can't give us a WebGL context at all (older devices, hardware
- *    acceleration disabled, a locked-down corporate build);
- *  - the device reports very little memory or very few cores, where a live
- *    canvas costs more in dropped frames and battery than the effect is worth.
- *
- * Callers render a static fallback in every case, so the section is never
- * blank — only quieter.
- */
-export function useWebGL(): WebGLState {
-  const [state, setState] = useState<WebGLState>("checking");
+export interface WebGLCapability {
+  state: WebGLState;
+  tier: DetailTier;
+}
+
+export function useWebGLCapability(): WebGLCapability {
+  const [capability, setCapability] = useState<WebGLCapability>({
+    state: "checking",
+    tier: "full",
+  });
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setState("unavailable");
+      setCapability({ state: "unavailable", tier: "reduced" });
       return;
     }
 
-    // `deviceMemory` and `hardwareConcurrency` are advisory and absent in some
-    // browsers; only act when a value is actually reported and is low.
     const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
     if (typeof memory === "number" && memory > 0 && memory < 1) {
-      setState("unavailable");
+      setCapability({ state: "unavailable", tier: "reduced" });
       return;
     }
-    // Only bail on genuinely single-core hardware. A dual-core laptop renders
-    // this scene comfortably, and an earlier, stricter threshold turned the
-    // interactive model off for machines that had no trouble with it.
+
     if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 2) {
-      setState("unavailable");
+      setCapability({ state: "unavailable", tier: "reduced" });
       return;
     }
 
@@ -52,21 +41,31 @@ export function useWebGL(): WebGLState {
         canvas.getContext("experimental-webgl");
 
       if (!gl) {
-        setState("unavailable");
+        setCapability({ state: "unavailable", tier: "reduced" });
         return;
       }
 
-      // Release the probe context immediately; browsers cap how many can be
-      // live at once, and leaking one here would count against the real scene.
       const lose = (gl as WebGLRenderingContext).getExtension("WEBGL_lose_context");
       lose?.loseContext();
 
-      setState("ready");
+      // Determine appropriate detail tier based on device hardware capability and screen width
+      const isLowCore = typeof navigator.hardwareConcurrency === "number" && navigator.hardwareConcurrency <= 4;
+      const isLowMemory = typeof memory === "number" && memory > 0 && memory <= 4;
+      const isMobileViewport = typeof window !== "undefined" && window.innerWidth < 768;
+
+      const tier: DetailTier = isLowCore || isLowMemory || isMobileViewport ? "reduced" : "full";
+
+      setCapability({ state: "ready", tier });
     } catch {
-      setState("unavailable");
+      setCapability({ state: "unavailable", tier: "reduced" });
     }
   }, []);
 
+  return capability;
+}
+
+export function useWebGL(): WebGLState {
+  const { state } = useWebGLCapability();
   return state;
 }
 
