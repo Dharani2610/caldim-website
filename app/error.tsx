@@ -27,8 +27,8 @@ export default function Error({
         </h1>
         <p className="mt-4 leading-relaxed text-paper-dim">
           It has been logged. Try again, and if it keeps happening, email us at{" "}
-          <a href="mailto:estimator@caldimengg.in" className="text-accent underline underline-offset-4">
-            estimator@caldimengg.in
+          <a href="mailto:quotes@caldimengg.com" className="text-accent underline underline-offset-4">
+            quotes@caldimengg.com
           </a>
           .
         </p>

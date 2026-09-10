@@ -1288,13 +1288,14 @@ function Assembly({
     const shadowT = clamp01((t - 0.6) / (completeAt - 0.6));
     shadowOpacityRef.current = easeInOutCubic(shadowT);
 
-    const orbit = 1.22 - ease * 0.22 + Math.max(0, t - completeAt) * 0.055;
-    const radius = (23.5 - ease * 6.5) * aspectFactor;
-    const height = (11.2 - ease * 4.0) * aspectFactor;
+    // Fixed steady camera framing so the animation runs strictly in-place on the right side
+    const orbit = 1.00;
+    const radius = 17.0 * aspectFactor;
+    const height = 7.2 * aspectFactor;
 
-    // Subtle pointer parallax for organic depth
-    const parallaxY = state.pointer.y * 0.35;
-    const parallaxX = state.pointer.x * 0.35;
+    // Subtle pointer parallax for gentle organic depth
+    const parallaxY = state.pointer.y * 0.15;
+    const parallaxX = state.pointer.x * 0.15;
     camera.position.set(
       Math.cos(orbit) * radius + parallaxX,
       height + parallaxY,
@@ -1578,6 +1579,41 @@ function AdaptiveDpr() {
   return null;
 }
 
+
+/**
+ * Smooth in-place turntable rotation around the structure's geometric center.
+ * Keeps the model rotating continuously strictly in the right half of the viewport.
+ */
+function TurntablePlatform({
+  children,
+  startRef,
+}: {
+  children: React.ReactNode;
+  startRef: React.MutableRefObject<number>;
+}) {
+  const rotRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (!rotRef.current) return;
+    const t = startRef.current > 0 ? state.clock.elapsedTime - startRef.current : 0;
+    if (t > 1.2) {
+      const rotProgress = (t - 1.2) * 0.18;
+      rotRef.current.rotation.y = rotProgress;
+    }
+  });
+
+  return (
+    <group position={[5.0, 0, -1.65]}>
+      {/* Pivot around structural center [1.5, 0, 0] */}
+      <group position={[1.5, 0, 0]}>
+        <group ref={rotRef} position={[-1.5, 0, 0]}>
+          {children}
+        </group>
+      </group>
+    </group>
+  );
+}
+
 export default function SteelAssemblyScene({
   dark,
   light,
@@ -1706,15 +1742,17 @@ export default function SteelAssemblyScene({
           />
         </Environment>
 
-        <Assembly
-          startRef={startRef}
-          splitRef={splitRef}
-          shadowOpacityRef={shadowOpacityRef}
-          matRef={matRef}
-          onComplete={onComplete}
-        />
+        <TurntablePlatform startRef={startRef}>
+          <Assembly
+            startRef={startRef}
+            splitRef={splitRef}
+            shadowOpacityRef={shadowOpacityRef}
+            matRef={matRef}
+            onComplete={onComplete}
+          />
 
-        <StructureShadows shadowOpacityRef={shadowOpacityRef} />
+          <StructureShadows shadowOpacityRef={shadowOpacityRef} />
+        </TurntablePlatform>
       </Suspense>
 
       <SplitRender

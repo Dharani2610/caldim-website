@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Linkedin } from "lucide-react";
+import { Instagram, Linkedin } from "lucide-react";
 import { standards } from "@/shared/data/content";
 import type { ServiceContent } from "@/shared/content/types";
 
@@ -83,16 +83,32 @@ export default function Footer({ services }: { services: ServiceContent[] }) {
 
           <div>
             <h2 className="label-mono-sm mb-4 text-paper-dim/80">CONNECT</h2>
-            <a
-              href="https://www.linkedin.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-paper-dim transition-colors hover:text-accent"
-            >
-              <Linkedin size={16} aria-hidden="true" />
-              LinkedIn
-              <span className="sr-only"> (opens in a new tab)</span>
-            </a>
+            <ul className="space-y-2.5">
+              <li>
+                <a
+                  href="https://www.linkedin.com/company/caldim-engineering/posts/?feedView=all"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-paper-dim transition-colors hover:text-accent"
+                >
+                  <Linkedin size={16} aria-hidden="true" />
+                  LinkedIn
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.instagram.com/caldim_engineering?stkn=bnVmOGx0Y3NqcDN1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-paper-dim transition-colors hover:text-accent"
+                >
+                  <Instagram size={16} aria-hidden="true" />
+                  Instagram
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
 
