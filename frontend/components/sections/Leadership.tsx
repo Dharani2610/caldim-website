@@ -149,7 +149,7 @@ function LeaderCard({ leader, index }: { leader: LeaderView; index: number }) {
                 fill
                 sizes="(min-width: 1280px) 360px, (min-width: 768px) 33vw, 90vw"
                 quality={90}
-                className="object-cover motion-safe:transition-transform motion-safe:duration-700 motion-safe:ease-out-expo group-hover:scale-[1.03]"
+                className="object-cover object-top motion-safe:transition-transform motion-safe:duration-700 motion-safe:ease-out-expo group-hover:scale-[1.03]"
               />
             ) : (
               <MonogramPortrait initials={leader.initials} />
