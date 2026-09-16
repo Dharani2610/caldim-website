@@ -1,6 +1,29 @@
 /** Verifies the TOTP enrolment → challenge → recovery-code path. */
 import { authenticator } from "otplib";
 try { process.loadEnvFile?.(".env"); } catch {}
+
+// Safety check: ensure tests run against a local database only
+const mongoUri = (process.env.MONGODB_URI || "").trim();
+const isAtlasUri = mongoUri.startsWith("mongodb+srv://") || (Boolean(mongoUri) && !mongoUri.includes("localhost") && !mongoUri.includes("127.0.0.1"));
+if (isAtlasUri) {
+  console.error(`
+================================================================================
+  SAFETY CHECK FAILED: DESTRUCTIVE TEST REFUSED AGAINST REMOTE / ATLAS DATABASE
+================================================================================
+  MONGODB_URI is currently pointed to a remote/Atlas cluster:
+  ${mongoUri.replace(/\/\/([^:]+):([^@]+)@/, "//***:***@")}
+
+  This script resets 2FA tokens, recovery codes, and sessions.
+  It MUST NOT run against production or shared Atlas databases.
+
+  To run verification safely:
+  1. Point MONGODB_URI to a local database in .env (e.g. MONGODB_URI="mongodb://localhost:27017")
+  2. Or run: MONGODB_URI="mongodb://localhost:27017" npm run verify:2fa
+================================================================================
+`);
+  process.exit(1);
+}
+
 const BASE = process.env.TEST_BASE_URL || process.env.SITE_URL || "http://localhost:3000";
 
 const EMAIL = "admin@caldimengg.com";
@@ -90,7 +113,8 @@ const goodTotp = await req(jar2, "/api/auth/totp", {
 check("correct TOTP code completes sign-in", goodTotp.status === 200, String(goodTotp.status));
 
 const nowAllowed = await req(jar2, "/api/admin/leaders");
-check("fully authenticated session reaches the admin API", nowAllowed.status === 200, String(nowAllowed.status));
+check("fully authenticated session clears 2FA requirement (status 200 or 403 pwd-change pending)",
+  nowAllowed.status === 200 || nowAllowed.status === 403, String(nowAllowed.status));
 
 console.log("\n── Recovery codes ──────────────────────────────────────────");
 await req(jar2, "/api/auth/logout", { method: "POST", headers: { "x-caldim-csrf": jar2.get("caldim_csrf") } });

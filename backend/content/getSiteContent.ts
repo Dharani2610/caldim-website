@@ -10,7 +10,7 @@ import {
   leaders,
   mediaAssets,
 } from "@/backend/db";
-import { deliveryUrl, videoPosterUrl } from "@/backend/media/cloudinary";
+import { deliveryUrl } from "@/backend/media/cloudinary";
 import {
   defaultCertificates,
   defaultContent,
@@ -20,7 +20,6 @@ import {
 import type {
   CertificateItemView,
   ContentBlocks,
-  GalleryItemView,
   LeaderView,
   SiteContent,
 } from "@/shared/content/types";
@@ -141,48 +140,6 @@ export const getSiteContent = cache(async (): Promise<SiteContent> => {
   ]);
   return { ...blocks, leaders, certificates };
 });
-
-/**
- * Media an editor has placed in a named slot.
- *
- * Like `getLeaders`, an empty result is not an error: the section falls back to
- * the artwork that ships with the site, so a fresh install looks finished
- * rather than broken, and a database outage degrades one section instead of
- * taking the page down.
- */
-export const getGalleryItems = cache(
-  async (collection = "gallery"): Promise<GalleryItemView[]> => {
-    try {
-      if (!isDatabaseConfigured()) return [];
-      const rows = await db
-        .select({ item: galleryItems, media: mediaAssets })
-        .from(galleryItems)
-        .innerJoin(mediaAssets, eq(galleryItems.mediaId, mediaAssets.id))
-        .where(
-          and(eq(galleryItems.collection, collection), eq(galleryItems.published, true))
-        )
-        .orderBy(asc(galleryItems.sortOrder), asc(galleryItems.createdAt));
-
-      return rows.map(({ item, media }) => ({
-        id: item.id,
-        kind: media.resourceType === "video" ? "video" : "image",
-        caption: item.caption,
-        meta: item.meta,
-        alt: media.altText || item.caption || media.originalName,
-        width: media.width,
-        height: media.height,
-        url: deliveryUrl(media.publicId, media.resourceType, { width: 1600 }),
-        // Every video gets a poster: without one the browser shows a blank
-        // rectangle until the first frame decodes.
-        posterUrl:
-          media.resourceType === "video" ? videoPosterUrl(media.publicId, 1280) : null,
-      }));
-    } catch (error) {
-      reportUnavailable("gallery", error);
-      return [];
-    }
-  }
-);
 
 /**
  * Certificates and accreditation documents/images placed by editors.

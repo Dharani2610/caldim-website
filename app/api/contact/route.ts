@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { db, isDatabaseConfigured, mediaAssets, newId, one } from "@/backend/db";
+import {
+  getContactSubmissionsCollection,
+  getMediaAssetsCollection,
+  isDatabaseConfigured,
+  newId,
+} from "@/backend/db";
 import {
   isEmailConfigured,
   sendRfqAutoConfirmation,
@@ -97,28 +102,30 @@ export async function POST(request: Request) {
   if (file instanceof File && file.size > 0) {
     try {
       const stored = await storeDocumentUpload(file);
-      const asset = await one(
-        db
-          .insert(mediaAssets)
-          .values({
-            id: newId(),
-            publicId: stored.publicId,
-            // `raw` keeps the file opaque: Cloudinary delivers it as a
-            // download rather than interpreting it as media, and the public
-            // /api/media route refuses to resolve raw rows at all.
-            resourceType: "raw",
-            format: stored.format,
-            secureUrl: stored.secureUrl,
-            originalName: stored.originalName,
-            mimeType: stored.mimeType,
-            byteSize: stored.byteSize,
-            checksum: stored.checksum,
-            altText: "RFQ attachment",
-            createdAt: new Date(),
-          })
-          .returning()
-      );
-      attachmentId = asset?.id ?? null;
+      const mediaCol = await getMediaAssetsCollection();
+      const assetId = newId();
+      await mediaCol.insertOne({
+        _id: assetId,
+        publicId: stored.publicId,
+        // `raw` keeps the file opaque: Cloudinary delivers it as a
+        // download rather than interpreting it as media, and the public
+        // /api/media route refuses to resolve raw rows at all.
+        resourceType: "raw",
+        format: stored.format,
+        secureUrl: stored.secureUrl,
+        originalName: stored.originalName,
+        mimeType: stored.mimeType,
+        byteSize: stored.byteSize,
+        width: null,
+        height: null,
+        duration: null,
+        checksum: stored.checksum,
+        altText: "RFQ attachment",
+        title: stored.originalName,
+        uploadedById: null,
+        createdAt: new Date(),
+      });
+      attachmentId = assetId;
       attachmentUrl = stored.secureUrl;
       attachmentName = stored.originalName;
     } catch (error) {
@@ -130,7 +137,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { getContactSubmissionsCollection } = await import("@/backend/db");
     const contactCol = await getContactSubmissionsCollection();
     const submissionId = newId();
     await contactCol.insertOne({

@@ -17,9 +17,6 @@ function ModelRender() {
         <line x1={60} y1={220} x2={155} y2={150} />
         <line x1={155} y1={220} x2={250} y2={150} />
       </g>
-      <text x="20" y="245" fontFamily="var(--font-jetbrains-mono), monospace" fontSize="10" fill="rgb(var(--color-mark-cool))">
-        TEKLA MODEL — WIREFRAME
-      </text>
     </svg>
   );
 }
@@ -47,9 +44,6 @@ function ErectedRender({ gradientId }: { gradientId: string }) {
         <line x1={60} y1={220} x2={155} y2={150} />
         <line x1={155} y1={220} x2={250} y2={150} />
       </g>
-      <text x="20" y="245" fontFamily="var(--font-jetbrains-mono), monospace" fontSize="10" fill="rgb(var(--color-paper))">
-        ERECTED STEEL — FIELD PHOTO STYLE
-      </text>
     </svg>
   );
 }
@@ -88,21 +82,29 @@ export default function BeforeAfterSlider() {
         <ModelRender />
       </div>
       <div
-        className="absolute top-0 bottom-0 w-px bg-accent"
+        className="absolute top-0 bottom-0 w-px bg-accent z-20"
         style={{ left: `${pos}%` }}
       >
-        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-8 w-8 bg-accent flex items-center justify-center text-steel-950">
+        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-8 w-8 bg-accent flex items-center justify-center text-steel-950 shadow-md">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M4 2L1 7L4 12M10 2L13 7L10 12" stroke="currentColor" strokeWidth="1.4" />
           </svg>
         </div>
       </div>
-      <span className="absolute top-3 left-3 label-mono text-paper-dim/70 bg-steel-950/60 px-2 py-1">
+      <span className="pointer-events-none absolute top-3 left-3 z-10 label-mono-sm font-semibold text-paper bg-steel-950/90 border border-blueprint/60 px-2 py-0.5 rounded backdrop-blur-sm">
         MODEL
       </span>
-      <span className="absolute top-3 right-3 label-mono text-paper-dim/70 bg-steel-950/60 px-2 py-1">
+      <span className="pointer-events-none absolute top-3 right-3 z-10 label-mono-sm font-semibold text-paper bg-steel-950/90 border border-blueprint/60 px-2 py-0.5 rounded backdrop-blur-sm">
         ERECTED
       </span>
+      <div className="pointer-events-none absolute inset-x-2.5 bottom-2.5 z-10 flex items-center justify-between gap-1.5">
+        <span className="whitespace-nowrap rounded border border-blueprint/70 bg-steel-950/90 px-2 py-1 font-mono text-[9.5px] font-bold tracking-tight text-accent backdrop-blur-sm">
+          TEKLA MODEL — WIREFRAME
+        </span>
+        <span className="whitespace-nowrap rounded border border-blueprint/70 bg-steel-950/90 px-2 py-1 font-mono text-[9.5px] font-bold tracking-tight text-paper backdrop-blur-sm">
+          ERECTED STEEL — FIELD PHOTO STYLE
+        </span>
+      </div>
     </div>
   );
 }

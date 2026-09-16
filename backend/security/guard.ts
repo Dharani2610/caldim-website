@@ -65,6 +65,13 @@ export async function guard(
     return { ok: false, response: deny(401, "Sign in to continue.") };
   }
 
+  if (auth.user.mustChangePassword) {
+    return {
+      ok: false,
+      response: deny(403, "Password change required before accessing admin resources."),
+    };
+  }
+
   if (ownerOnly && auth.user.role !== "owner") {
     return { ok: false, response: deny(403, "You don't have permission to do that.") };
   }

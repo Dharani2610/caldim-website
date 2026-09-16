@@ -30,27 +30,7 @@ export const defaultHero: ContentBlocks["hero"] = {
   secondaryCta: "View Capabilities",
 };
 
-/** Previously hard-coded inside the Events section; now editable. */
-export const defaultEvents: ContentBlocks["events"] = [
-  {
-    date: "March 2026",
-    title: "NASCC: The Steel Conference",
-    location: "San Antonio, TX",
-    note: "Booth visit — connection design and detailing capability walkthroughs.",
-  },
-  {
-    date: "June 2026",
-    title: "AISC Steel Day",
-    location: "Regional fabricator shops, US",
-    note: "Site visits with fabricator partners to review current detailing workflows.",
-  },
-  {
-    date: "September 2026",
-    title: "Detailing & BIM Coordination Webinar",
-    location: "Online",
-    note: "Live walkthrough of our RFQ-to-issued-for-fab process for prospective clients.",
-  },
-];
+export const defaultEvents: ContentBlocks["events"] = [];
 
 export const defaultContent: ContentBlocks = {
   hero: defaultHero,
