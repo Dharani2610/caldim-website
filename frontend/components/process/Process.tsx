@@ -203,15 +203,11 @@ export default function Process() {
     <section id="process" className="relative bg-steel-950" aria-labelledby="process-heading">
       <div
         ref={wrapRef}
-        className={`relative flex flex-col justify-center overflow-hidden ${
-          pinned ? "h-screen" : "py-24 md:py-32"
+        className={`relative flex flex-col overflow-hidden ${
+          pinned ? "h-screen justify-between pt-24 pb-8 md:pt-28 md:pb-10" : "py-24 md:py-32 justify-center"
         }`}
       >
-        <div
-          className={`z-10 px-6 md:px-10 ${
-            pinned ? "absolute left-0 right-0 top-24" : "mx-auto w-full max-w-[1440px]"
-          }`}
-        >
+        <div className="z-10 mx-auto w-full max-w-[1440px] px-6 md:px-10 shrink-0">
           <Reveal className="max-w-2xl">
             <p className="label-mono mb-3 flex items-center gap-3 text-accent">
               <span className="h-px w-6 shrink-0 bg-accent/50" aria-hidden="true" />
@@ -219,7 +215,7 @@ export default function Process() {
             </p>
             <h2
               id="process-heading"
-              className="font-display text-[clamp(2rem,3vw+1rem,3.25rem)] font-semibold leading-[1.08] tracking-[-0.015em] text-paper"
+              className="font-display text-[clamp(2rem,3vw+1rem,3.25rem)] font-semibold leading-[1.2] md:leading-[1.22] tracking-[-0.015em] text-paper"
             >
               RFQ to issued-for-fab, in six phases.
             </h2>
@@ -236,7 +232,7 @@ export default function Process() {
           ref={trackRef}
           className={`flex gap-5 px-6 md:px-10 ${
             pinned
-              ? "mt-20 w-max"
+              ? "my-auto w-max"
               : "snap-track mx-auto mt-12 w-full max-w-[1440px] overflow-x-auto pb-4"
           }`}
           role={pinned ? undefined : "group"}
@@ -256,9 +252,7 @@ export default function Process() {
         </div>
 
         <div
-          className={`z-10 flex gap-2 px-6 md:px-10 ${
-            pinned ? "absolute bottom-8 left-0 right-0" : "mx-auto mt-8 w-full max-w-[1440px]"
-          }`}
+          className="z-10 mx-auto w-full max-w-[1440px] flex gap-2 px-6 md:px-10 shrink-0"
           aria-hidden="true"
         >
           {processPhases.map((phase, index) => (

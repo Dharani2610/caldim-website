@@ -8,16 +8,16 @@ import MagneticButton from "@/frontend/components/MagneticButton";
 import ThemeToggle from "@/frontend/components/ThemeToggle";
 
 const links = [
-  { href: "/#services", anchor: "services", label: "Services" },
-  { href: "/#process", anchor: "process", label: "Process" },
-  { href: "/#projects", anchor: "projects", label: "Projects" },
-  { href: "/#gallery", anchor: "gallery", label: "Gallery" },
-  { href: "/#about", anchor: "about", label: "About" },
-  { href: "/#leadership", anchor: "leadership", label: "Leadership" },
-  { href: "/#events", anchor: "events", label: "Events" },
-  { href: "/#careers", anchor: "careers", label: "Careers" },
-  { href: "/#contact", anchor: "contact", label: "Contact" },
-  { href: "/certificates", anchor: "certificates", label: "Reviews & Recommendations" },
+  { href: "/#services", anchor: "services", label: "Services", fullLabel: "Services" },
+  { href: "/#process", anchor: "process", label: "Process", fullLabel: "Process" },
+  { href: "/#projects", anchor: "projects", label: "Projects", fullLabel: "Projects" },
+  { href: "/#gallery", anchor: "gallery", label: "Gallery", fullLabel: "Gallery" },
+  { href: "/#about", anchor: "about", label: "About", fullLabel: "About" },
+  { href: "/#leadership", anchor: "leadership", label: "Leadership", fullLabel: "Leadership" },
+  { href: "/#events", anchor: "events", label: "Events", fullLabel: "Events" },
+  { href: "/#careers", anchor: "careers", label: "Careers", fullLabel: "Careers" },
+  { href: "/#contact", anchor: "contact", label: "Contact", fullLabel: "Contact" },
+  { href: "/certificates", anchor: "certificates", label: "Reviews", fullLabel: "Reviews & Recommendations" },
 ];
 
 export default function Nav() {
@@ -107,7 +107,7 @@ export default function Nav() {
         className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-6 md:h-24 md:px-10"
         aria-label="Primary"
       >
-        <Link href="/#top" className="group flex items-center gap-3" style={{ perspective: "400px" }}>
+        <Link href="/#top" className="group flex shrink-0 items-center gap-3" style={{ perspective: "400px" }}>
           <Image
             src="/images/caldim-logo.png"
             alt="Caldim Engineering Services logo"
@@ -127,7 +127,7 @@ export default function Nav() {
           </span>
         </Link>
 
-        <div className="hidden items-center gap-6 xl:gap-7 lg:flex">
+        <div className="hidden items-center gap-5 xl:flex 2xl:gap-7">
           {links.map((link) => {
             const isActive =
               pathname === "/certificates"
@@ -139,7 +139,7 @@ export default function Nav() {
                 key={link.href}
                 href={link.href}
                 aria-current={isActive ? "true" : undefined}
-                className={`relative py-1 text-sm font-medium transition-colors ${
+                className={`relative py-1 text-sm font-medium transition-colors whitespace-nowrap ${
                   isActive ? "text-accent" : "text-paper hover:text-accent"
                 }`}
               >
@@ -155,14 +155,14 @@ export default function Nav() {
           })}
         </div>
 
-        <div className="hidden items-center gap-4 lg:flex">
+        <div className="hidden shrink-0 items-center gap-4 xl:flex">
           <ThemeToggle />
           <MagneticButton href="/#contact" variant="solid">
             Request Quote
           </MagneticButton>
         </div>
 
-        <div className="flex items-center gap-2 lg:hidden">
+        <div className="flex shrink-0 items-center gap-2 xl:hidden">
           <ThemeToggle />
           <button
             ref={toggleRef}
@@ -191,7 +191,7 @@ export default function Nav() {
         <div
           ref={panelRef}
           id="mobile-menu"
-          className="flex max-h-[calc(100vh-5rem)] flex-col gap-1 overflow-y-auto border-t border-blueprint bg-steel-950 px-6 py-5 lg:hidden"
+          className="flex max-h-[calc(100vh-5rem)] flex-col gap-1 overflow-y-auto border-t border-blueprint bg-steel-950 px-6 py-5 xl:hidden"
         >
           {links.map((link) => {
             const isActive =
@@ -211,7 +211,7 @@ export default function Nav() {
                     : "text-paper hover:bg-steel-900"
                 }`}
               >
-                {link.label}
+                {link.fullLabel || link.label}
               </Link>
             );
           })}

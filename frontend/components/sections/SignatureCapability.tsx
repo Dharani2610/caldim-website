@@ -12,7 +12,7 @@ export default function SignatureCapability() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div>
-            <h2 className="font-display font-semibold text-paper text-[clamp(2rem,3vw+1rem,3.25rem)] leading-[1.1] mb-6">
+            <h2 className="font-display font-semibold text-paper text-[clamp(2rem,3vw+1rem,3.25rem)] leading-[1.2] md:leading-[1.22] mb-6">
               Connections design, stamped by a licensed PE — in any state you build in.
             </h2>
             <p className="text-paper-dim leading-relaxed mb-6 max-w-lg">

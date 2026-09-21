@@ -46,7 +46,7 @@ export default function SectionHeading({
           {eyebrow}
         </p>
         {title && (
-          <Heading className="font-display font-semibold text-paper text-[clamp(2rem,3vw+1rem,3.25rem)] leading-[1.08] tracking-[-0.015em]">
+          <Heading className="font-display font-semibold text-paper text-[clamp(2rem,3vw+1rem,3.25rem)] leading-[1.2] md:leading-[1.22] tracking-[-0.015em]">
             {title}
           </Heading>
         )}

@@ -21,7 +21,7 @@ export default function Careers({ careers }: { careers: CareersContent }) {
           <Reveal className="lg:col-span-2">
             <h2
               id="careers-heading"
-              className="mb-6 font-display text-[clamp(2rem,3vw+1rem,3.25rem)] font-semibold leading-[1.08] tracking-[-0.015em] text-paper"
+              className="mb-6 font-display text-[clamp(2rem,3vw+1rem,3.25rem)] font-semibold leading-[1.2] md:leading-[1.22] tracking-[-0.015em] text-paper"
             >
               Build the team that builds the drawings.
             </h2>

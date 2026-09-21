@@ -182,7 +182,7 @@ export default function SteelIntro() {
               width={1423}
               height={875}
               priority
-              className="max-h-full w-auto max-w-[min(92%,1100px)] object-contain opacity-90"
+              className="max-h-full w-auto max-w-[min(82%,880px)] object-contain opacity-90"
             />
           </div>
         )}
@@ -204,16 +204,16 @@ export default function SteelIntro() {
 
         <div className="flex flex-1 flex-col justify-center">
           <div
-            className={`max-w-3xl transition-all duration-1000 ease-out-expo ${assembled ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
+            className={`max-w-xl lg:max-w-lg xl:max-w-xl transition-all duration-1000 ease-out-expo ${assembled ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
               }`}
           >
             <h2
               id="intro-heading"
-              className="font-display text-[clamp(2.25rem,4.4vw+1rem,4.75rem)] font-semibold leading-[1.04] tracking-[-0.025em] text-paper"
+              className="max-w-[420px] font-display text-[clamp(2rem,3vw+1rem,3.4rem)] font-semibold leading-[1.16] tracking-[-0.025em] text-paper"
             >
               Precision in Structural Steel Detailing
             </h2>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-paper-dim">
+            <p className="mt-5 max-w-lg text-lg leading-relaxed text-paper-dim">
               Every member modelled, every bolt checked, every drawing issued ready for the
               shop floor.
             </p>
@@ -262,7 +262,7 @@ export default function SteelIntro() {
           numbers" band uses — not invented to fill the layout.
         */}
         <div
-          className={`pointer-events-none absolute right-6 top-1/2 hidden w-[16rem] -translate-y-1/2 space-y-6 transition-all duration-1000 ease-out-expo md:right-10 lg:block ${assembled && wide && canRender
+          className={`pointer-events-none absolute right-6 top-1/2 hidden w-[16rem] -translate-y-1/2 space-y-6 transition-all duration-1000 ease-out-expo md:right-10 xl:block ${assembled && wide && canRender
               ? "translate-x-0 opacity-100"
               : "translate-x-6 opacity-0"
             }`}

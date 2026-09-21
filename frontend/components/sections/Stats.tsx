@@ -65,7 +65,7 @@ function Counter({ value, suffix, label }: StatContent) {
           // The live value is announced once, at the end, rather than on every
           // frame — otherwise a screen reader reads out the entire count.
           aria-label={`${value.toLocaleString()}${suffix} ${label}`}
-          className={`inline-block font-display text-[clamp(2.5rem,4vw+1rem,4.5rem)] font-semibold tabular-nums tracking-[-0.02em] text-paper motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out-expo ${
+          className={`inline-block font-display text-[clamp(2.5rem,4vw+1rem,4.5rem)] font-semibold tabular-nums tracking-[-0.02em] leading-none text-paper motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out-expo ${
             revealed ? "opacity-100" : "opacity-0"
           }`}
           style={{
@@ -79,7 +79,7 @@ function Counter({ value, suffix, label }: StatContent) {
           </span>
         </span>
       </span>
-      <p className="label-mono mt-2 text-paper-dim" aria-hidden="true">
+      <p className="label-mono mt-3 text-paper-dim" aria-hidden="true">
         {label}
       </p>
     </div>
@@ -109,7 +109,7 @@ export default function Stats({ stats }: { stats: StatContent[] }) {
       <div className="relative mx-auto max-w-[1440px] px-6 md:px-10">
         <SectionHeading eyebrow="BY THE NUMBERS" />
 
-        <div className="grid grid-cols-2 gap-10 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-8 sm:gap-10 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5">
           {stats.map((stat, index) => (
             <Reveal key={stat.label} delay={index * 0.08}>
               <Counter {...stat} />

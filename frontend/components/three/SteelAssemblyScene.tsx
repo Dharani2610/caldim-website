@@ -1615,7 +1615,7 @@ export default function SteelAssemblyScene({
   return (
     <Canvas
       key={runKey}
-      camera={{ position: [5.5, 8.5, 16.5], fov: 40, near: 0.1, far: 140 }}
+      camera={{ position: [2.5, 8.2, 22.5], fov: 38, near: 0.1, far: 140 }}
       dpr={[1, 1.4]}
       gl={{ antialias: true, powerPreference: "high-performance", alpha: true }}
       frameloop="always"
