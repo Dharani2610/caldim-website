@@ -33,7 +33,7 @@ export default function SoftwareStandards() {
           {/* Software Showcase */}
           <div>
             <Reveal>
-              <h3 className="mb-2 font-display text-2xl font-semibold text-paper">
+              <h3 className="mb-2 font-display text-xl font-semibold text-paper">
                 Software & Technology
               </h3>
               <p className="mb-8 text-sm leading-relaxed text-paper-dim">
@@ -62,7 +62,7 @@ export default function SoftwareStandards() {
           {/* Standards & Certifications */}
           <div>
             <Reveal>
-              <h3 className="mb-2 font-display text-2xl font-semibold text-paper">
+              <h3 className="mb-2 font-display text-xl font-semibold text-paper">
                 Standards we detail to
               </h3>
               <p className="mb-8 text-sm leading-relaxed text-paper-dim">

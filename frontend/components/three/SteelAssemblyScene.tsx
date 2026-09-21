@@ -21,7 +21,7 @@ import type { DetailTier } from "./useWebGL";
 
 // ── Structure Dimensions & Elevations ────────────────────────────────────
 const COL_W = 0.28;
-const BEAM_D = 0.34;
+const BEAM_D = 0.44;
 const BAY_X = 3.2;
 const BAY_Z = 3.2;
 
@@ -217,15 +217,15 @@ function buildComplex(tier: DetailTier): { parts: Part[]; bolts: Bolt[] } {
     const wings = isReduced
       ? [{ name: "East", minX: 0.0, maxX: 6.4, midX: 3.2, len: 6.6 }]
       : [
-          { name: "East", minX: 0.0, maxX: 6.4, midX: 3.2, len: 6.6 },
-          {
-            name: "West",
-            minX: isTopFloor ? -3.2 : -6.4,
-            maxX: 0.0,
-            midX: isTopFloor ? -1.6 : -3.2,
-            len: isTopFloor ? 3.4 : 6.6,
-          },
-        ];
+        { name: "East", minX: 0.0, maxX: 6.4, midX: 3.2, len: 6.6 },
+        {
+          name: "West",
+          minX: isTopFloor ? -3.2 : -6.4,
+          maxX: 0.0,
+          midX: isTopFloor ? -1.6 : -3.2,
+          len: isTopFloor ? 3.4 : 6.6,
+        },
+      ];
 
     wings.forEach((wing, wIdx) => {
       [-1.6, 1.6].forEach((gz, sideIdx) => {
@@ -266,11 +266,18 @@ function buildComplex(tier: DetailTier): { parts: Part[]; bolts: Bolt[] } {
         : isTopFloor ? [-3.2] : [-6.4, -3.2];
 
       colXLines.forEach((cx, gIdx) => {
+        // High-capacity deep W-beam profiles on highlighted exterior front-edge framing (cx === 6.4)
+        const isFrontEdge = cx === 6.4;
+        const isExterior = cx === 6.4 || cx === -6.4;
+        const beamLength = isFrontEdge ? 4.10 : 3.10; // +32.2% length/span on the 5 front-edge beams
+        const beamDepth = isFrontEdge ? 0.68 : (isExterior ? 0.54 : 0.44); // +25.9% web depth
+        const flangeWidth = isFrontEdge ? 0.50 : (isExterior ? 0.38 : 0.28); // +31.6% flange width
+
         parts.push({
           kind: "wf",
-          a: 3.1,
-          b: BEAM_D,
-          c: 0.22,
+          a: beamLength,
+          b: beamDepth,
+          c: flangeWidth,
           final: [cx, beamY - 0.01, 0],
           finalRot: [0, Math.PI / 2, 0],
           axisY: false,
@@ -300,12 +307,12 @@ function buildComplex(tier: DetailTier): { parts: Part[]; bolts: Bolt[] } {
         });
       });
 
-      // Floor Deck Plate
+      // Floor Deck Plate (aligned with beam span)
       parts.push({
         kind: "plate",
         a: wing.len,
         b: 0.048,
-        c: 3.35,
+        c: wing.name === "East" ? 4.15 : 3.35,
         final: [wing.midX, deckY, 0],
         finalRot: [0, 0, 0],
         axisY: false,
@@ -362,16 +369,16 @@ function buildComplex(tier: DetailTier): { parts: Part[]; bolts: Bolt[] } {
   // Continuous interconnected stair flights with mathematically exact riser & going
   const stairFlights: FlightConfig[] = isReduced
     ? [
-        { fromY: 0.02, toY: decks[0], startX: 6.45, endX: 3.85, z: 1.68, isReduced: true },
-        { fromY: decks[0], toY: decks[1], startX: 3.85, endX: 6.45, z: 1.68, isReduced: true },
-        { fromY: decks[1], toY: decks[2], startX: 6.45, endX: 3.85, z: 1.68, isReduced: true },
-      ]
+      { fromY: 0.02, toY: decks[0], startX: 6.45, endX: 3.85, z: 1.68, isReduced: true },
+      { fromY: decks[0], toY: decks[1], startX: 3.85, endX: 6.45, z: 1.68, isReduced: true },
+      { fromY: decks[1], toY: decks[2], startX: 6.45, endX: 3.85, z: 1.68, isReduced: true },
+    ]
     : [
-        { fromY: 0.02, toY: decks[0], startX: 6.45, endX: 3.75, z: 1.68 },
-        { fromY: decks[0], toY: decks[1], startX: 3.75, endX: 6.45, z: 1.68 },
-        { fromY: decks[1], toY: decks[2], startX: 6.45, endX: 3.75, z: 1.68 },
-        { fromY: decks[2], toY: decks[3], startX: 3.75, endX: 6.45, z: 1.68 },
-      ];
+      { fromY: 0.02, toY: decks[0], startX: 6.45, endX: 3.75, z: 1.68 },
+      { fromY: decks[0], toY: decks[1], startX: 3.75, endX: 6.45, z: 1.68 },
+      { fromY: decks[1], toY: decks[2], startX: 6.45, endX: 3.75, z: 1.68 },
+      { fromY: decks[2], toY: decks[3], startX: 3.75, endX: 6.45, z: 1.68 },
+    ];
 
   stairFlights.forEach((flight, fIdx) => {
     const flightStartTime = 1.8 + fIdx * 1.35;
@@ -696,10 +703,10 @@ function pushComplexBracing(
   const braceBays = isReduced
     ? [{ x: 1.6, z: -1.6, tiers: [0, 2] }]
     : [
-        { x: 1.6, z: -1.6, tiers: [0, 1, 2, 3] }, // East Wing Rear
-        { x: -4.8, z: -1.6, tiers: [0, 2] }, // West Wing Rear
-        { x: -6.4, z: 0, isSide: true, tiers: [0, 2] }, // West Far End X-Bracing
-      ];
+      { x: 1.6, z: -1.6, tiers: [0, 1, 2, 3] }, // East Wing Rear
+      { x: -4.8, z: -1.6, tiers: [0, 2] }, // West Wing Rear
+      { x: -6.4, z: 0, isSide: true, tiers: [0, 2] }, // West Far End X-Bracing
+    ];
 
   braceBays.forEach((bay, bIdx) => {
     bay.tiers.forEach((tierIdx, tIdx) => {
@@ -898,17 +905,20 @@ function PartMeshes({
   const steel = part.accent ? mat.accent : mat.steel;
 
   switch (kind) {
-    case "wf":
+    case "wf": {
+      const flangeThick = Math.max(0.054, c * 0.18);
+      const webThick = Math.max(0.036, c * 0.12);
       return (
         <>
           {/* Top Flange */}
-          <mesh geometry={geo.box} material={steel} position={[0, b / 2, 0]} scale={[a, 0.054, c]} />
+          <mesh geometry={geo.box} material={steel} position={[0, b / 2, 0]} scale={[a, flangeThick, c]} />
           {/* Bottom Flange */}
-          <mesh geometry={geo.box} material={steel} position={[0, -b / 2, 0]} scale={[a, 0.054, c]} />
+          <mesh geometry={geo.box} material={steel} position={[0, -b / 2, 0]} scale={[a, flangeThick, c]} />
           {/* Central Web */}
-          <mesh geometry={geo.box} material={mat.dark} scale={[a, b, 0.036]} />
+          <mesh geometry={geo.box} material={mat.dark} scale={[a, b, webThick]} />
         </>
       );
+    }
     case "hss":
       return (
         <>
@@ -1551,7 +1561,7 @@ function TurntablePlatform({
   });
 
   return (
-    <group position={[4.0, 0, -1.0]}>
+    <group position={[2.5, -0.4, 0]}>
       {/* Pivot around structural building center [0, 0, 0] */}
       <group position={[0, 0, 0]}>
         <group ref={rotRef} position={[0, 0, 0]}>

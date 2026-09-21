@@ -42,7 +42,7 @@ export default function CertificatesPage({
             <div className="mt-10">
               <div className="rounded-2xl border border-blueprint/70 bg-steel-900/40 p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                  <h2 className="font-display text-lg font-semibold text-paper">
+                  <h2 className="font-display text-xl font-semibold text-paper">
                     Certifications & Memberships will be added soon
                   </h2>
                   <p className="mt-2 text-sm text-paper-dim leading-relaxed max-w-2xl">
@@ -85,7 +85,7 @@ export default function CertificatesPage({
             <div className="rounded-2xl border border-blueprint bg-steel-900/60 p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
               <div>
                 <p className="label-mono text-accent text-xs font-semibold">DIRECT VERIFICATION</p>
-                <h3 className="font-display text-2xl font-semibold text-paper mt-1">
+                <h3 className="font-display text-xl md:text-2xl font-semibold text-paper mt-1">
                   Need official calculation packets or specific fabricator references?
                 </h3>
                 <p className="text-sm text-paper-dim mt-2 max-w-xl">
@@ -160,7 +160,7 @@ function renderCertificateCard(
           {/* Content Details */}
           <div className="mt-5 flex flex-1 flex-col justify-between">
             <div>
-              <h3 className="font-display text-lg font-semibold text-paper group-hover:text-accent transition-colors">
+              <h3 className="font-display text-xl font-semibold text-paper group-hover:text-accent transition-colors">
                 {cert.caption || cert.alt || "Official Letter"}
               </h3>
               {cert.meta && (
@@ -202,7 +202,7 @@ function renderCertificateCard(
           {/* Content Details */}
           <div className="mt-5 flex flex-1 flex-col justify-between">
             <div>
-              <h3 className="font-display text-lg font-semibold text-paper group-hover:text-accent transition-colors">
+              <h3 className="font-display text-xl font-semibold text-paper group-hover:text-accent transition-colors">
                 {cert.caption || cert.alt || "Official Document"}
               </h3>
               {cert.meta && (

@@ -83,7 +83,7 @@ export default function CertificateLightbox({
         {/* Header / Top bar */}
         <div className="flex items-center justify-between border-b border-blueprint px-6 py-4 bg-steel-950/60">
           <div>
-            <h3 id="lightbox-title" className="font-display text-lg font-semibold text-paper">
+            <h3 id="lightbox-title" className="font-display text-xl font-semibold text-paper">
               {certificate.caption || certificate.alt || "Official Certificate"}
             </h3>
             {certificate.meta && (
