@@ -55,7 +55,7 @@ export default function Hero({ hero }: { hero: HeroContent }) {
           </div>
 
           {/* Right-side visual panel: Complete isometric structural steel building frame model */}
-          <div className="relative z-[3] mx-auto w-full max-w-md lg:absolute lg:right-[-3%] lg:top-1/2 lg:mx-0 lg:w-[58%] lg:max-w-[900px] lg:-translate-y-[46%] xl:w-[54%]">
+          <div className="relative z-[3] mx-auto w-full max-w-md lg:mx-0 lg:w-full lg:max-w-none">
             <div className="relative w-full aspect-[1418/840] overflow-hidden motion-safe:animate-floaty">
               <Image
                 src="/images/iso-full-model.png"

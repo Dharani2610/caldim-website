@@ -77,7 +77,7 @@ function Counter({ value, suffix, label }: StatContent) {
           </span>
         </span>
       </span>
-      <p className="label-mono mt-2 text-paper-dim" aria-hidden="true">
+      <p className="label-mono mt-3 text-paper-dim" aria-hidden="true">
         {label}
       </p>
     </div>
