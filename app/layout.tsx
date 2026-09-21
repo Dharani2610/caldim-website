@@ -172,10 +172,14 @@ function JsonLd({ nonce }: { nonce?: string }) {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // The nonce is minted per request in middleware and echoed here, so the CSP
-  // can allow exactly the scripts this page emitted without 'unsafe-inline'.
-  const nonce = headers().get("x-nonce") ?? undefined;
-  const csrfToken = getOrCreateCsrfToken();
+  let nonce: string | undefined = undefined;
+  let csrfToken = "";
+  try {
+    nonce = headers().get("x-nonce") ?? undefined;
+    csrfToken = getOrCreateCsrfToken();
+  } catch {
+    // In static export or build time, headers() is not available
+  }
 
   return (
     <html lang="en" className={`${archivo.variable} ${jetbrainsMono.variable}`}>

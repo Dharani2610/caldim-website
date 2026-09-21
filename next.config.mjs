@@ -1,25 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone",
+  output: "export",
+  trailingSlash: true,
   // Don't advertise the framework and version in a response header; it is one
   // fewer hint for an automated scanner looking for a known-vulnerable build.
   poweredByHeader: false,
-
-  // Trailing-slash redirects are a small but real open-redirect surface when
-  // combined with certain proxy configurations.
   skipTrailingSlashRedirect: false,
-
   reactStrictMode: true,
 
   images: {
-    /**
-     * Exactly one remote host, pinned to one path.
-     *
-     * A bare `res.cloudinary.com` entry would let the optimiser fetch from any
-     * Cloudinary account on the internet — the optimiser is a proxy, and an
-     * over-broad pattern turns it into an open one. Restricting the pathname
-     * to this cloud means it can only ever fetch our own assets.
-     */
+    unoptimized: true,
     remotePatterns: process.env.CLOUDINARY_CLOUD_NAME
       ? [
           {
