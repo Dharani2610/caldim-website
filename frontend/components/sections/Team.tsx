@@ -40,7 +40,7 @@ export default function Team() {
                   </svg>
                 </div>
                 <div>
-                  <p className="font-display font-semibold text-paper">{member.role}</p>
+                  <h3 className="font-display text-lg md:text-xl font-semibold text-paper">{member.role}</h3>
                   <p className="label-mono-sm mt-1 text-accent">{member.credentials}</p>
                 </div>
                 <p className="text-sm leading-relaxed text-paper-dim">{member.note}</p>

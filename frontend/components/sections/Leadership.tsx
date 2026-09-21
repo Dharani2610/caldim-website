@@ -160,20 +160,11 @@ function LeaderCard({ leader, index }: { leader: LeaderView; index: number }) {
               className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-steel-900 via-steel-900/60 to-transparent"
               aria-hidden="true"
             />
-
-            {/* Part-mark bubble — the drawing convention used across the site,
-                lifted highest so it floats above the portrait on tilt. */}
-            <span
-              className="label-mono-sm absolute left-4 top-4 inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-accent/70 bg-steel-950/80 px-2 text-accent backdrop-blur-sm"
-              style={{ transform: "translateZ(46px)" }}
-            >
-              {String(index + 1).padStart(2, "0")}
-            </span>
           </div>
 
           {/* Text plane. */}
           <div className="relative p-6" style={{ transform: "translateZ(30px)" }}>
-            <h3 className="font-display text-lg font-semibold leading-tight text-paper">
+            <h3 className="font-display text-xl font-semibold leading-tight text-paper">
               {leader.name}
             </h3>
             <p className="mt-1 text-sm font-medium text-paper-dim">{leader.title}</p>

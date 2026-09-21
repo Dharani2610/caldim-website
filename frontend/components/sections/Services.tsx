@@ -6,7 +6,6 @@ import GlowVignette from "@/frontend/components/GlowVignette";
 import TiltCard from "@/frontend/components/TiltCard";
 import Reveal from "@/frontend/components/ui/Reveal";
 import SectionHeading from "@/frontend/components/ui/SectionHeading";
-import { PartMarkBubble } from "@/frontend/components/DrawingMarks";
 import type { ServiceContent } from "@/shared/content/types";
 
 /**
@@ -73,8 +72,7 @@ export default function Services({ services }: { services: ServiceContent[] }) {
                 <TiltCard
                   className="group relative flex flex-col rounded-2xl border border-blueprint bg-steel-950 p-6 transition-colors hover:border-blueprint-light hover:bg-steel-900/70 md:p-8"
                 >
-                  <div className="mb-4 flex items-center justify-between">
-                    <PartMarkBubble mark={service.mark} />
+                  <div className="mb-4 flex items-center justify-end">
                     <span className="label-mono-sm text-paper-dim/80">{service.standard}</span>
                   </div>
 

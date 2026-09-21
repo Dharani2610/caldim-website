@@ -37,7 +37,7 @@ export default function Footer({ services }: { services: ServiceContent[] }) {
 
         <div className="grid grid-cols-2 gap-10 border-t border-blueprint pt-10 sm:grid-cols-4">
           <div>
-            <h2 className="label-mono-sm mb-4 text-paper-dim/80">SERVICES</h2>
+            <h3 className="label-mono-sm font-semibold mb-4 text-paper-dim/80">SERVICES</h3>
             <ul className="space-y-2">
               {services.map((service) => (
                 <li key={service.id}>
@@ -53,7 +53,7 @@ export default function Footer({ services }: { services: ServiceContent[] }) {
           </div>
 
           <div>
-            <h2 className="label-mono-sm mb-4 text-paper-dim/80">STANDARDS</h2>
+            <h3 className="label-mono-sm font-semibold mb-4 text-paper-dim/80">STANDARDS</h3>
             <ul className="space-y-2">
               {standards.slice(0, 6).map((standard) => (
                 <li key={standard} className="text-sm text-paper-dim">
@@ -64,7 +64,7 @@ export default function Footer({ services }: { services: ServiceContent[] }) {
           </div>
 
           <div>
-            <h2 className="label-mono-sm mb-4 text-paper-dim/80">SITEMAP</h2>
+            <h3 className="label-mono-sm font-semibold mb-4 text-paper-dim/80">SITEMAP</h3>
             <ul className="space-y-2">
               {sitemap.map((item) => (
                 <li key={item.href}>
@@ -80,7 +80,7 @@ export default function Footer({ services }: { services: ServiceContent[] }) {
           </div>
 
           <div>
-            <h2 className="label-mono-sm mb-4 text-paper-dim/80">CONNECT</h2>
+            <h3 className="label-mono-sm font-semibold mb-4 text-paper-dim/80">CONNECT</h3>
             <ul className="space-y-2.5">
               <li>
                 <a
