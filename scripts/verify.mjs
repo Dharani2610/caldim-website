@@ -3,6 +3,29 @@
  * Exercises the real HTTP surface, not mocks.
  */
 try { process.loadEnvFile?.(".env"); } catch {}
+
+// Safety check: ensure tests run against a local database only
+const mongoUri = (process.env.MONGODB_URI || "").trim();
+const isAtlasUri = mongoUri.startsWith("mongodb+srv://") || (Boolean(mongoUri) && !mongoUri.includes("localhost") && !mongoUri.includes("127.0.0.1"));
+if (isAtlasUri) {
+  console.error(`
+================================================================================
+  SAFETY CHECK FAILED: DESTRUCTIVE TEST REFUSED AGAINST REMOTE / ATLAS DATABASE
+================================================================================
+  MONGODB_URI is currently pointed to a remote/Atlas cluster:
+  ${mongoUri.replace(/\/\/([^:]+):([^@]+)@/, "//***:***@")}
+
+  This script mutates, enrolls 2FA, changes passwords, and deletes test data.
+  It MUST NOT run against production or shared Atlas databases.
+
+  To run verification safely:
+  1. Point MONGODB_URI to a local database in .env (e.g. MONGODB_URI="mongodb://localhost:27017")
+  2. Or run: MONGODB_URI="mongodb://localhost:27017" npm run verify
+================================================================================
+`);
+  process.exit(1);
+}
+
 const BASE = process.env.TEST_BASE_URL || process.env.SITE_URL || "http://localhost:3000";
 
 const EMAIL = "admin@caldimengg.com";
@@ -174,8 +197,8 @@ async function main() {
     `next was ${loginBody.next}`);
 
   console.log("\n── Authenticated behaviour ─────────────────────────────────");
-  const leaders = await req(jar, "/api/admin/leaders");
-  check("admin API allows the signed-in user", leaders.status === 200, `got ${leaders.status}`);
+  const leadersPending = await req(jar, "/api/admin/leaders");
+  check("admin API rejects access while password change is pending", leadersPending.status === 403, `got ${leadersPending.status}`);
 
   // The password screen is reachable, but the dashboard should push back to it.
   const dashboard = await req(jar, "/admin");
@@ -207,6 +230,10 @@ async function main() {
   const dashboardNow = await req(jar, "/admin");
   check("dashboard reachable after the password change", dashboardNow.status === 200,
     `got ${dashboardNow.status}`);
+
+  const leadersNow = await req(jar, "/api/admin/leaders");
+  check("admin API allows access after the password change", leadersNow.status === 200,
+    `got ${leadersNow.status}`);
 
   console.log("\n── Content CMS ─────────────────────────────────────────────");
   const csrf = jar.get("caldim_csrf");

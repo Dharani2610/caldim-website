@@ -301,6 +301,5 @@ export const directContacts = [
   { name: "Bala", email: "bala@caldimengg.com" },
   { name: "Uvaraj", email: "uvaraj@caldimengg.com" },
   { name: "Swami", email: "swami@caldimengg.com" },
-  { name: "Fairuz", email: "fairuz@caldimengg.com" },
-  { name: "Estimator", email: "estimator@caldimengg.in" },
+  { name: "Arun", email: "arunkumar.ponnusamy@caldimengg.com" },
 ] as const;

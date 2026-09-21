@@ -178,7 +178,12 @@ export class DatabaseNotConfigured extends Error {
 export function isDatabaseConfigured(): boolean {
   const uri = env.mongodbUri;
   const dbUrl = env.databaseUrl;
-  const isMongoValid = Boolean(uri && !uri.includes("localhost:27017") && uri.length > 10);
+  const isMongoValid = Boolean(
+    uri &&
+      (uri.startsWith("mongodb://") || uri.startsWith("mongodb+srv://")) &&
+      uri.trim() !== "mongodb://unconfigured" &&
+      uri.length >= 10
+  );
   const isPostgresValid = Boolean(
     dbUrl &&
       !dbUrl.includes("aws-0-REGION") &&

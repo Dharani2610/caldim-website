@@ -53,7 +53,7 @@ export default function Services({ services }: { services: ServiceContent[] }) {
   return (
     <section
       id="services"
-      className="relative bg-steel-950 bp-grid bg-[length:64px_64px] py-24 md:py-32"
+      className="relative bg-steel-950 py-24 md:py-32"
       aria-labelledby="services-heading"
     >
       <div className="mx-auto max-w-[1440px] px-6 md:px-10">

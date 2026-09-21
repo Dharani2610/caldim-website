@@ -19,7 +19,7 @@ export default function Team() {
           eyebrow="YOUR PROJECT TEAM"
           title={
             <span id="team-heading">
-              Licensed engineers and certified detailers, not a ticket queue.
+              Licensed engineers and certified detailers.
             </span>
           }
         />
