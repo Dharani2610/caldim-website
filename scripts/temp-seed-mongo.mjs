@@ -21,13 +21,50 @@ function newId() {
 }
 
 async function main() {
-  const uri = process.env.MONGODB_URI || "mongodb://localhost:27017";
+  const uri = (process.env.MONGODB_URI || "mongodb://localhost:27017").trim();
   const dbName = process.env.MONGODB_DB_NAME || "caldim";
-  const email = (process.argv[2] || "admin@caldimengg.com").toLowerCase().trim();
-  const password = process.argv[3] || "CaldimAdmin2026!Secured";
+  
+  const emailArg = process.argv[2]?.trim();
+  if (!emailArg || emailArg.startsWith("--")) {
+    console.error(`
+================================================================================
+  ERROR: MISSING TARGET EMAIL
+================================================================================
+  Usage:
+    node scripts/temp-seed-mongo.mjs <email> [password] [--confirm-production]
+
+  Example:
+    node scripts/temp-seed-mongo.mjs test-user@example.com MyPass123!
+================================================================================
+`);
+    process.exit(1);
+  }
+
+  const email = emailArg.toLowerCase();
+  const password = process.argv[3] && !process.argv[3].startsWith("--") ? process.argv[3] : "CaldimAdmin2026!Secured";
   const name = "Caldim Administrator";
 
-  console.log(`Connecting to MongoDB at ${uri}/${dbName}...`);
+  const isAtlas = uri.startsWith("mongodb+srv://") || (!uri.includes("localhost") && !uri.includes("127.0.0.1"));
+  const confirmedProd = process.argv.includes("--confirm-production") || process.argv.includes("--force");
+
+  if (isAtlas && !confirmedProd) {
+    console.error(`
+================================================================================
+  SAFETY REFUSAL: TARGETING REMOTE / ATLAS CLUSTER
+================================================================================
+  MONGODB_URI points to a remote/Atlas cluster:
+  ${uri.replace(/\/\/([^:]+):([^@]+)@/, "//***:***@")}
+
+  Target account: ${email}
+
+  To seed/overwrite accounts on Atlas intentionally, pass --confirm-production:
+    node scripts/temp-seed-mongo.mjs ${email} [password] --confirm-production
+================================================================================
+`);
+    process.exit(1);
+  }
+
+  console.log(`Connecting to MongoDB at ${uri.replace(/\/\/([^:]+):([^@]+)@/, "//***:***@")}/${dbName}...`);
   const client = new MongoClient(uri);
   await client.connect();
   const db = client.db(dbName);

@@ -6,15 +6,19 @@ export default function SignatureCapability() {
   return (
     <section id="connections" className="relative bg-steel-900/40 py-24 md:py-32 border-y border-blueprint">
       <div className="max-w-[1440px] mx-auto px-6 md:px-10">
-        <div className="flex items-start justify-between mb-14">
-          <p className="label-mono text-accent">SIGNATURE CAPABILITY</p>
+        <div className="mb-14">
+          <p className="label-mono text-accent mb-3 flex items-center gap-3">
+            <span className="h-px w-6 shrink-0 bg-accent/50" aria-hidden="true" />
+            SIGNATURE CAPABILITY
+          </p>
+          <h2 className="font-display font-semibold text-paper text-[clamp(1.75rem,2.8vw+0.5rem,3.25rem)] leading-tight tracking-[-0.015em] lg:whitespace-nowrap">
+            Connections design, stamped by a licensed PE — in any state you build in.
+          </h2>
         </div>
+
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div>
-            <h2 className="font-display font-semibold text-paper text-[clamp(2rem,3vw+1rem,3.25rem)] leading-[1.2] md:leading-[1.22] mb-6">
-              Connections design, stamped by a licensed PE — in any state you build in.
-            </h2>
             <p className="text-paper-dim leading-relaxed mb-6 max-w-lg">
               Most detailers hand you a connection and let your EOR figure out
               if it works. We calculate it ourselves — moment, shear, bracing,
@@ -59,23 +63,24 @@ export default function SignatureCapability() {
             </div>
 
             <div className="space-y-3 mb-8">
-              <DimensionLine label="W12x26 [TYP]" width={220} />
+              <DimensionLine label="W112x26 [TYP]" width={220} />
               <div className="h-2 bg-steel-950/10 rounded-full w-[92%]" />
-              <div className="h-2 bg-steel-950/10 rounded-full w-[78%]" />
+              <div className="h-2 bg-steel-950/10 rounded-full w.[78%]" />
               <div className="h-2 bg-steel-950/10 rounded-full w-[85%]" />
               <div className="h-2 bg-steel-950/10 rounded-full w-[60%]" />
             </div>
+
 
             <div className="grid grid-cols-2 gap-4 mb-8 text-sm">
               <div className="border border-steel-950/15 rounded-xl p-3">
                 <p className="label-mono text-steel-950/50">Mu</p>
                 <p className="font-mono font-medium">184 kip-ft</p>
               </div>
-              <div className="border border-steel-950/15 rounded-xl p-3">
-                <p className="label-mono text-steel-950/50">φMn</p>
+              <div className="border border-steel-950/15 rounded-xl -3">
+                <p className="label-mono text-steel-950/50">ƆMn</p>
                 <p className="font-mono font-medium">221 kip-ft</p>
               </div>
-              <div className="border border-steel-950/15 rounded-xl p-3">
+              <div className="border border-steel-950/15 rounded-xl -3">
                 <p className="label-mono text-steel-950/50">Bolt group</p>
                 <p className="font-mono font-medium">(8) 7/8&quot; A325-SC</p>
               </div>
@@ -84,6 +89,7 @@ export default function SignatureCapability() {
                 <p className="font-mono font-medium text-accent">0.83 OK</p>
               </div>
             </div>
+
 
             {/* PE seal graphic */}
             <div className="flex items-center gap-3 border-t border-steel-950/15 pt-6">
