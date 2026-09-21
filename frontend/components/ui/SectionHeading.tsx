@@ -38,20 +38,20 @@ export default function SectionHeading({
         title ? "mb-12 md:mb-16" : "mb-10 md:mb-12"
       } ${className}`}
     >
-      <Reveal className={`max-w-2xl ${centred ? "mx-auto text-center" : ""}`}>
-        <p className="label-mono text-accent mb-3 flex items-center gap-3">
+      <Reveal className={`max-w-3xl ${centred ? "mx-auto text-center" : ""}`}>
+        <p className="label-mono text-accent mb-3 flex items-center gap-3 font-semibold">
           {!centred && (
-            <span className="h-px w-6 bg-accent/50 shrink-0" aria-hidden="true" />
+            <span className="h-px w-6 bg-accent/60 shrink-0" aria-hidden="true" />
           )}
           {eyebrow}
         </p>
         {title && (
-          <Heading className="font-display font-semibold text-paper text-[clamp(2rem,3vw+1rem,3.25rem)] leading-[1.08] tracking-[-0.015em]">
+          <Heading className="font-display font-semibold text-paper text-[clamp(2rem,2.8vw+0.75rem,3.25rem)] leading-[1.08] tracking-[-0.02em]">
             {title}
           </Heading>
         )}
         {lead && (
-          <p className="mt-4 text-paper-dim leading-relaxed max-w-xl">{lead}</p>
+          <p className="mt-4 text-paper-dim text-base md:text-lg leading-relaxed max-w-2xl">{lead}</p>
         )}
       </Reveal>
 

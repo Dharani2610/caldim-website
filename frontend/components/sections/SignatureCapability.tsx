@@ -1,20 +1,15 @@
 import ExplodedConnectionViewer from "@/frontend/components/three/ExplodedConnectionViewer";
 import { DimensionLine } from "@/frontend/components/DrawingMarks";
-import MagneticButton from "@/frontend/components/MagneticButton";
+import SectionHeading from "@/frontend/components/ui/SectionHeading";
 
 export default function SignatureCapability() {
   return (
     <section id="connections" className="relative bg-steel-900/40 py-24 md:py-32 border-y border-blueprint">
       <div className="max-w-[1440px] mx-auto px-6 md:px-10">
-        <div className="mb-14">
-          <p className="label-mono text-accent mb-3 flex items-center gap-3">
-            <span className="h-px w-6 shrink-0 bg-accent/50" aria-hidden="true" />
-            SIGNATURE CAPABILITY
-          </p>
-          <h2 className="font-display font-semibold text-paper text-[clamp(1.75rem,2.8vw+0.5rem,3.25rem)] leading-tight tracking-[-0.015em] lg:whitespace-nowrap">
-            Connections design, stamped by a licensed PE — in any state you build in.
-          </h2>
-        </div>
+        <SectionHeading
+          eyebrow="SIGNATURE CAPABILITY"
+          title="Connections design, stamped by a licensed PE — in any state you build in."
+        />
 
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -39,11 +34,6 @@ export default function SignatureCapability() {
                 <p className="label-mono text-accent mb-1">TURNAROUND</p>
                 <p className="text-paper font-display font-semibold">5–8 business days</p>
               </div>
-            </div>
-            <div className="mt-8">
-              <MagneticButton href="#contact" variant="solid">
-                Request a Calc Package Sample
-              </MagneticButton>
             </div>
           </div>
 

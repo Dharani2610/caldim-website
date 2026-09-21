@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 320" width="100%" height="100%">
+  <defs>
+    <!-- Top text arc -->
+    <path id="nisd-top-arc" d="M 38 140 A 112 112 0 0 1 262 140" fill="none" />
+  </defs>
+
+  <!-- Outer circular border -->
+  <circle cx="150" cy="140" r="134" stroke="currentColor" stroke-width="4" fill="none" />
+  <circle cx="150" cy="140" r="102" stroke="currentColor" stroke-width="2" stroke-dasharray="4,4" fill="none" />
+
+  <!-- Perimeter Text: National Institute of Steel Detailing -->
+  <text font-family="'Space Grotesk', 'Arial', sans-serif" font-weight="700" font-size="12.5" fill="currentColor" letter-spacing="2">
+    <textPath href="#nisd-top-arc" startOffset="50%" text-anchor="middle">
+      NATIONAL INSTITUTE OF STEEL DETAILING
+    </textPath>
+  </text>
+
+  <!-- Three dots below monogram -->
+  <circle cx="120" cy="248" r="3" fill="currentColor" />
+  <circle cx="150" cy="254" r="3" fill="currentColor" />
+  <circle cx="180" cy="248" r="3" fill="currentColor" />
+
+  <!-- Central NISD Monogram in signature vibrant blue -->
+  <g stroke="#2A6BCC" stroke-width="5.5" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 'N' -->
+    <path d="M 72 75 L 72 205 M 72 75 L 112 205 M 112 75 L 112 205" />
+    <!-- 'I' -->
+    <path d="M 125 75 L 125 205" />
+    <!-- 'S' -->
+    <path d="M 175 75 C 150 75 142 95 142 115 C 142 145 180 145 180 175 C 180 195 168 205 145 205" />
+    <!-- 'D' -->
+    <path d="M 195 75 L 195 205 M 195 75 C 235 75 245 105 245 140 C 245 175 235 205 195 205" />
+  </g>
+
+  <!-- Bottom Label: MEMBER -->
+  <text x="150" y="295" font-family="'JetBrains Mono', 'Space Grotesk', monospace, sans-serif" font-weight="800" font-size="20" fill="currentColor" text-anchor="middle" letter-spacing="4">
+    MEMBER
+  </text>
+</svg>

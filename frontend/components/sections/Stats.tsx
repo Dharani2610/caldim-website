@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Reveal from "@/frontend/components/ui/Reveal";
-import SectionHeading from "@/frontend/components/ui/SectionHeading";
 import type { StatContent } from "@/shared/content/types";
 
 /**
@@ -65,9 +64,8 @@ function Counter({ value, suffix, label }: StatContent) {
           // The live value is announced once, at the end, rather than on every
           // frame — otherwise a screen reader reads out the entire count.
           aria-label={`${value.toLocaleString()}${suffix} ${label}`}
-          className={`inline-block font-display text-[clamp(2.5rem,4vw+1rem,4.5rem)] font-semibold tabular-nums tracking-[-0.02em] text-paper motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out-expo ${
-            revealed ? "opacity-100" : "opacity-0"
-          }`}
+          className={`inline-block font-display text-[clamp(2.5rem,4vw+1rem,4.5rem)] font-semibold tabular-nums tracking-[-0.02em] text-paper motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out-expo ${revealed ? "opacity-100" : "opacity-0"
+            }`}
           style={{
             transform: revealed ? "rotateX(0deg)" : "rotateX(-88deg)",
             transformOrigin: "50% 100%",
@@ -88,27 +86,8 @@ function Counter({ value, suffix, label }: StatContent) {
 
 export default function Stats({ stats }: { stats: StatContent[] }) {
   return (
-    <section className="relative overflow-hidden bg-steel-950 py-24 md:py-32" aria-label="By the numbers">
-      {/* Wireframe frame in the background, at the depth of a drawing underlay. */}
-      <svg
-        className="absolute inset-0 h-full w-full opacity-[0.12]"
-        viewBox="0 0 800 400"
-        preserveAspectRatio="xMidYMid slice"
-        aria-hidden="true"
-      >
-        <g stroke="rgb(var(--color-mark-cool))" strokeWidth="1">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <line key={`v${i}`} x1={100 + i * 150} y1={50} x2={100 + i * 150} y2={350} />
-          ))}
-          {[0, 1, 2].map((i) => (
-            <line key={`h${i}`} x1={100} y1={100 + i * 100} x2={700} y2={100 + i * 100} />
-          ))}
-        </g>
-      </svg>
-
+    <section className="relative overflow-hidden bg-steel-950 py-24 md:py-32" aria-label="Statistics">
       <div className="relative mx-auto max-w-[1440px] px-6 md:px-10">
-        <SectionHeading eyebrow="BY THE NUMBERS" />
-
         <div className="grid grid-cols-2 gap-10 lg:grid-cols-3 xl:grid-cols-5">
           {stats.map((stat, index) => (
             <Reveal key={stat.label} delay={index * 0.08}>

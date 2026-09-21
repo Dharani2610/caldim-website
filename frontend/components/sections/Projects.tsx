@@ -22,7 +22,7 @@ export default function Projects({ projects }: { projects: ProjectContent[] }) {
               >
                 <article className="flex flex-col">
                   <BeforeAfterSlider />
-                  <h3 className="mt-5 font-display text-lg font-semibold text-paper">{project.type}</h3>
+                  <h3 className="mt-5 font-display text-xl font-semibold text-paper">{project.type}</h3>
                   <p className="label-mono-sm mt-1 font-semibold text-accent">{project.location}</p>
                   <p className="mt-3 text-sm leading-relaxed text-paper-dim">{project.note}</p>
                   <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-blueprint pt-5">

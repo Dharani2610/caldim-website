@@ -1,6 +1,7 @@
 "use client";
 
 import { processPhases } from "@/shared/data/content";
+import SectionHeading from "@/frontend/components/ui/SectionHeading";
 import Reveal from "@/frontend/components/ui/Reveal";
 
 function BeamStage({ level }: { level: number }) {
@@ -122,14 +123,13 @@ function PhaseCard({
       className="card-surface flex h-full flex-col justify-between rounded-2xl border border-blueprint bg-steel-900/25 p-6 md:p-8 transition-all duration-300 hover:border-accent/40 hover:bg-steel-900/40"
     >
       <div>
-        <div className="mb-6 flex items-center justify-between">
-          <span className="label-mono text-accent">{phase.step}</span>
+        <div className="mb-6 flex items-center justify-end">
           <span className="label-mono-sm text-paper-dim/80">{phase.phase}</span>
         </div>
         <div className="my-4 flex items-center justify-center">
           <BeamStage level={index} />
         </div>
-        <h3 className="mt-6 font-display text-lg font-semibold text-paper">{phase.label}</h3>
+        <h3 className="mt-6 font-display text-xl font-semibold text-paper">{phase.label}</h3>
         <p className="mt-2 text-sm leading-relaxed text-paper-dim">{phase.description}</p>
       </div>
       <span className="sr-only">Phase {index + 1} of {processPhases.length}</span>
@@ -141,20 +141,12 @@ export default function Process() {
   return (
     <section id="process" className="relative border-y border-blueprint bg-steel-950 py-24 md:py-32" aria-labelledby="process-heading">
       <div className="mx-auto w-full max-w-[1440px] px-6 md:px-10">
-        <Reveal className="max-w-none">
-          <p className="label-mono mb-3 flex items-center gap-3 text-accent">
-            <span className="h-px w-6 shrink-0 bg-accent/50" aria-hidden="true" />
-            PROCESS
-          </p>
-          <h2
-            id="process-heading"
-            className="font-display text-[clamp(1.75rem,2.8vw+0.5rem,3.25rem)] font-semibold leading-tight tracking-[-0.015em] text-paper md:whitespace-nowrap"
-          >
-            RFQ to issued-for-fab, in six phases.
-          </h2>
-        </Reveal>
+        <SectionHeading
+          eyebrow="PROCESS"
+          title={<span id="process-heading">RFQ to issued-for-fab, in six phases.</span>}
+        />
 
-        <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 md:gap-8">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 md:gap-8">
           {processPhases.map((phase, index) => (
             <Reveal key={phase.step} delay={index * 0.06} className="h-full">
               <PhaseCard phase={phase} index={index} />

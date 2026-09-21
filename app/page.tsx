@@ -32,7 +32,10 @@ export default async function Home() {
   return (
     <>
       <Nav />
-      <main id="main" className="overflow-x-hidden">
+      <main
+        id="main"
+        className="min-h-screen overflow-x-hidden bg-gradient-to-br from-[#E2EFFC] via-[#D2E6FA] to-[#BFE0F8] [html:not(.light)_&]:from-steel-950 [html:not(.light)_&]:via-[#0C1929] [html:not(.light)_&]:to-steel-950"
+      >
         <SteelIntro />
         <Hero hero={content.hero} />
         <Stats stats={content.stats} />

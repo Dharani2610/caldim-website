@@ -247,7 +247,7 @@ export default function Contact({
           </Reveal>
 
           <Reveal delay={0.1} className="flex flex-col gap-8">
-            <h3 className="font-display text-lg font-semibold text-paper">Offices</h3>
+            <h3 className="font-display text-xl font-semibold text-paper">Offices</h3>
             {offices.map((office) => (
               <div key={office.city} className="border-t border-blueprint pt-4">
                 <p className="font-medium text-paper">{office.city}</p>
@@ -258,7 +258,7 @@ export default function Contact({
             ))}
 
             <div className="border-t border-blueprint pt-4">
-              <p className="label-mono-sm mb-2 text-paper-dim/80">DIRECT CONTACTS</p>
+              <p className="label-mono-sm font-semibold mb-2 text-paper-dim/80">DIRECT CONTACTS</p>
               <ul className="space-y-1.5">
                 {directContacts.map((contact) => (
                   <li key={contact.email} className="flex items-baseline gap-2 text-sm">
