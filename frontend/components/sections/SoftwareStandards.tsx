@@ -23,7 +23,7 @@ export default function SoftwareStandards() {
   return (
     <section
       id="about"
-      className="relative border-y border-blueprint bg-steel-900/40 py-24 md:py-32"
+      className="relative py-24 md:py-32"
       aria-label="Tools of record"
     >
       <div className="mx-auto max-w-[1440px] px-6 md:px-10">

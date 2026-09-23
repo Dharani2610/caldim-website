@@ -25,6 +25,11 @@ const BEAM_D = 0.44;
 const BAY_X = 3.2;
 const BAY_Z = 3.2;
 
+/** Deck dimensions */
+const EAST_DECK_DEPTH = 4.15;
+const WEST_DECK_DEPTH = 3.35;
+const EAST_DECK_FRONT_EDGE_Z = EAST_DECK_DEPTH / 2; // 2.075
+
 /** Deck heights for 5 levels (ground = 0) */
 const DECK_LEVELS = [2.4, 4.8, 7.2, 9.6, 12.0] as const;
 const DECK_LEVELS_REDUCED = [2.6, 5.2, 7.8, 10.4] as const;
@@ -39,6 +44,10 @@ const STRINGER_D = 0.26;
 const STAIR_W = 1.15;
 const TREAD_GOING = 0.26; // 260mm standard tread depth
 const TREAD_THICKNESS = 0.045;
+
+/** External Staircase Z-position derived from East Wing deck edge with exterior clearance */
+const STAIR_CLEARANCE_FROM_DECK = 0.775;
+const STAIR_Z = EAST_DECK_FRONT_EDGE_Z + STAIR_CLEARANCE_FROM_DECK; // = 2.85 (clearly projecting outside deck front edge 2.075)
 
 type Vec3 = [number, number, number];
 
@@ -312,7 +321,7 @@ function buildComplex(tier: DetailTier): { parts: Part[]; bolts: Bolt[] } {
         kind: "plate",
         a: wing.len,
         b: 0.048,
-        c: wing.name === "East" ? 4.15 : 3.35,
+        c: wing.name === "East" ? EAST_DECK_DEPTH : WEST_DECK_DEPTH,
         final: [wing.midX, deckY, 0],
         finalRot: [0, 0, 0],
         axisY: false,
@@ -366,23 +375,53 @@ function buildComplex(tier: DetailTier): { parts: Part[]; bolts: Bolt[] } {
   });
 
   // ── Stage 7: Precision Staircase Spine (1.8s - 7.5s) ──────────────────────
-  // Continuous interconnected stair flights with mathematically exact riser & going
+  // Continuous interconnected stair flights with mathematically exact riser & going,
+  // projecting outside the building's exterior footprint on the front face.
   const stairFlights: FlightConfig[] = isReduced
     ? [
-      { fromY: 0.02, toY: decks[0], startX: 6.45, endX: 3.85, z: 1.68, isReduced: true },
-      { fromY: decks[0], toY: decks[1], startX: 3.85, endX: 6.45, z: 1.68, isReduced: true },
-      { fromY: decks[1], toY: decks[2], startX: 6.45, endX: 3.85, z: 1.68, isReduced: true },
+      { fromY: 0.02, toY: decks[0], startX: 6.45, endX: 3.85, z: STAIR_Z, isReduced: true },
+      { fromY: decks[0], toY: decks[1], startX: 3.85, endX: 6.45, z: STAIR_Z, isReduced: true },
+      { fromY: decks[1], toY: decks[2], startX: 6.45, endX: 3.85, z: STAIR_Z, isReduced: true },
     ]
     : [
-      { fromY: 0.02, toY: decks[0], startX: 6.45, endX: 3.75, z: 1.68 },
-      { fromY: decks[0], toY: decks[1], startX: 3.75, endX: 6.45, z: 1.68 },
-      { fromY: decks[1], toY: decks[2], startX: 6.45, endX: 3.75, z: 1.68 },
-      { fromY: decks[2], toY: decks[3], startX: 3.75, endX: 6.45, z: 1.68 },
+      { fromY: 0.02, toY: decks[0], startX: 6.45, endX: 3.75, z: STAIR_Z },
+      { fromY: decks[0], toY: decks[1], startX: 3.75, endX: 6.45, z: STAIR_Z },
+      { fromY: decks[1], toY: decks[2], startX: 6.45, endX: 3.75, z: STAIR_Z },
+      { fromY: decks[2], toY: decks[3], startX: 3.75, endX: 6.45, z: STAIR_Z },
     ];
+
+  // Ground level foundation landing pad for external stair
+  const groundStartX = isReduced ? 3.85 : 3.75;
+  parts.push({
+    kind: "plate",
+    a: 1.3,
+    b: 0.045,
+    c: STAIR_W + 0.25,
+    final: [groundStartX, 0.02, STAIR_Z],
+    finalRot: [0, 0, 0],
+    axisY: false,
+    startTime: 1.6,
+    duration: 0.36,
+    dropHeight: 1.0,
+  });
 
   stairFlights.forEach((flight, fIdx) => {
     const flightStartTime = 1.8 + fIdx * 1.35;
     pushPrecisionStairFlight(parts, bolts, flight, flightStartTime);
+
+    // Connecting landing bridge linking external stair arrival landing back to building floor deck
+    const isOuterCol = flight.startX > 5.0; // 6.45 is outer column (cx=6.4), 3.75/3.85 is inner column (cx=3.2)
+    pushStairLandingBridge(
+      parts,
+      bolts,
+      flight.startX,
+      flight.toY,
+      STAIR_Z,
+      EAST_DECK_FRONT_EDGE_Z,
+      flightStartTime + 0.45,
+      isOuterCol,
+      isReduced
+    );
   });
 
   // Roof Access Safety Ladder (Level 4 to Roof Terrace)
@@ -539,6 +578,159 @@ function pushPrecisionStairFlight(
     startTime: baseTime + 0.5,
     duration: 0.36,
     dropHeight: 1.1,
+  });
+}
+
+/**
+ * Structural connecting landing bridge linking external stair flights back to the building floor deck.
+ */
+function pushStairLandingBridge(
+  parts: Part[],
+  bolts: Bolt[],
+  landingX: number,
+  deckY: number,
+  stairZ: number,
+  deckEdgeZ: number,
+  baseTime: number,
+  isOuterCol: boolean,
+  isReduced?: boolean
+) {
+  const beamY = beamYFor(deckY);
+  const zInner = 1.6; // Anchored directly into the front column line girder
+  const zOuter = stairZ;
+  const bridgeSpanZ = zOuter - zInner; // 2.85 - 1.6 = 1.25
+  const bridgeMidZ = (zInner + zOuter) / 2; // 2.225
+  const bridgeWidthX = 1.25;
+
+  // 1. Supporting Cantilever Outrigger Channels (Left & Right along Z)
+  [-1, 1].forEach((side, i) => {
+    const sideX = landingX + side * (bridgeWidthX / 2 - 0.04);
+    parts.push({
+      kind: "channel",
+      a: bridgeSpanZ + 0.08,
+      b: 0.24,
+      c: 0.08,
+      final: [sideX, beamY, bridgeMidZ],
+      finalRot: [0, Math.PI / 2, 0],
+      axisY: false,
+      flip: side > 0,
+      startTime: baseTime + 0.02 + i * 0.04,
+      duration: 0.42,
+      dropHeight: 1.4,
+    });
+
+    // Connection bolts anchoring cantilever channel to front building beam at z = 1.6
+    for (const by of [-0.06, 0.06]) {
+      bolts.push({
+        tc: true,
+        final: [sideX, beamY + by, 1.6],
+        finalRot: [0, 0, 0],
+        startTime: baseTime + 0.32 + i * 0.03,
+        duration: 0.22,
+      });
+    }
+  });
+
+  // 2. Connector Floor Plate spanning from building deck to stair landing
+  parts.push({
+    kind: "plate",
+    a: bridgeWidthX,
+    b: 0.045,
+    c: bridgeSpanZ,
+    final: [landingX, deckY, bridgeMidZ],
+    finalRot: [0, 0, 0],
+    axisY: false,
+    startTime: baseTime + 0.1,
+    duration: 0.38,
+    dropHeight: 1.2,
+  });
+
+  // 3. Diagonal Structural Knee Strut / Cantilever Brace
+  // Ties the projecting landing directly back into the heavy building column below
+  const colX = isOuterCol ? 6.4 : 3.2;
+  const rise = 1.15;
+  const run = stairZ - 1.6;
+  const strutLen = Math.hypot(run, rise);
+  const strutAngle = Math.atan2(run, rise);
+
+  parts.push({
+    kind: "pipe",
+    a: 0.065,
+    b: strutLen,
+    c: 0.065,
+    final: [colX, deckY - rise / 2 - 0.05, (1.6 + stairZ) / 2],
+    finalRot: [strutAngle, 0, 0],
+    axisY: true,
+    startTime: baseTime + 0.16,
+    duration: 0.4,
+    dropHeight: 1.3,
+  });
+
+  // Gusset connection plate at column intersection
+  parts.push({
+    kind: "gusset",
+    a: 0.38,
+    b: 0.32,
+    c: 0.025,
+    final: [colX, deckY - rise + 0.1, 1.62],
+    finalRot: [0, Math.PI / 2, 0],
+    axisY: false,
+    startTime: baseTime + 0.12,
+    duration: 0.32,
+    dropHeight: 0.9,
+  });
+
+  // 4. Safety Guardrails along the outside open edge of the connecting bridge
+  const openSide = isOuterCol ? 1 : -1;
+  const railX = landingX + openSide * (bridgeWidthX / 2);
+
+  // Top handrail
+  parts.push({
+    kind: "rail",
+    a: 0.04,
+    b: bridgeSpanZ,
+    c: 0.04,
+    final: [railX, railTopFor(deckY), bridgeMidZ],
+    finalRot: [Math.PI / 2, 0, 0],
+    axisY: true,
+    accent: true,
+    startTime: baseTime + 0.22,
+    duration: 0.36,
+    dropHeight: 1.0,
+  });
+
+  if (!isReduced) {
+    // Mid safety rail
+    parts.push({
+      kind: "rail",
+      a: 0.034,
+      b: bridgeSpanZ,
+      c: 0.034,
+      final: [railX, railMidFor(deckY), bridgeMidZ],
+      finalRot: [Math.PI / 2, 0, 0],
+      axisY: true,
+      accent: true,
+      startTime: baseTime + 0.26,
+      duration: 0.36,
+      dropHeight: 1.0,
+    });
+  }
+
+  // Vertical guardrail stanchions
+  [zInner + 0.25, bridgeMidZ, zOuter - 0.1].forEach((sz, pIdx) => {
+    parts.push({
+      kind: "rail",
+      a: 0.038,
+      b: 1.05,
+      c: 0.038,
+      final: [railX, deckY + 0.52, sz],
+      finalRot: [0, 0, 0],
+      axisY: true,
+      accent: true,
+      startTime: baseTime + 0.28 + pIdx * 0.02,
+      duration: 0.32,
+      dropHeight: 0.9,
+    });
   });
 }
 

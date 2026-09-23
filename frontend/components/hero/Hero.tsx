@@ -21,13 +21,13 @@ export default function Hero({ hero }: { hero: HeroContent }) {
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-steel-950 via-steel-950/40 to-transparent"
+        className="pointer-events-none absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-steel-950 via-steel-950/40 to-transparent [html.light_&]:opacity-0"
         aria-hidden="true"
       />
 
       {/* Gradient scrim for legibility behind the left-side copy. */}
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-steel-950 via-steel-950/50 to-transparent lg:via-steel-950/25"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-steel-950 via-steel-950/50 to-transparent lg:via-steel-950/25 [html.light_&]:opacity-0"
         aria-hidden="true"
       />
 
@@ -64,7 +64,7 @@ export default function Hero({ hero }: { hero: HeroContent }) {
                 height={840}
                 priority
                 sizes="(min-width: 1280px) 780px, (min-width: 1024px) 58vw, (min-width: 640px) 448px, 92vw"
-                className="h-full w-full object-contain [html.light_&]:mix-blend-multiply [html:not(.light)_&]:invert [html:not(.light)_&]:mix-blend-screen transition-transform duration-700 ease-out-expo hover:scale-[1.02]"
+                className="h-full w-full object-contain [html:not(.light)_&]:invert [html:not(.light)_&]:opacity-90 [html.light_&]:opacity-85 transition-transform duration-700 ease-out-expo hover:scale-[1.02]"
               />
             </div>
           </div>

@@ -68,7 +68,7 @@ function NisdSeal({ className = "w-full h-full" }: { className?: string }) {
 export default function Certifications({ certifications }: { certifications: string[] }) {
   return (
     <section
-      className="relative border-b border-blueprint bg-steel-950 py-24 md:py-32"
+      className="relative border-b border-blueprint bg-transparent py-24 md:py-32"
       aria-labelledby="certs-heading"
     >
       <div className="mx-auto max-w-[1440px] px-6 md:px-10">

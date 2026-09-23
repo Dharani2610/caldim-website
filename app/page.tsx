@@ -34,7 +34,7 @@ export default async function Home() {
       <Nav />
       <main
         id="main"
-        className="min-h-screen overflow-x-hidden bg-gradient-to-br from-[#E2EFFC] via-[#D2E6FA] to-[#BFE0F8] [html:not(.light)_&]:from-steel-950 [html:not(.light)_&]:via-[#0C1929] [html:not(.light)_&]:to-steel-950"
+        className="min-h-screen overflow-x-hidden"
       >
         <SteelIntro />
         <Hero hero={content.hero} />
@@ -44,10 +44,24 @@ export default async function Home() {
         <SignatureCapability />
         <Process />
         <Projects projects={content.projects} />
-        <SoftwareStandards />
-        <TaglineMarquee />
-        <Certifications certifications={content.certifications} />
-        <WhyUs pillars={content.pillars} />
+
+        {/* Shared fixed-background container for TaglineMarquee, Certifications, and WhyUs */}
+        <div className="relative overflow-hidden border-y border-blueprint">
+          <div
+            className="pointer-events-none absolute inset-0 bg-fixed bg-center bg-no-repeat opacity-[0.06] [html.light_&]:opacity-[0.07] [html:not(.light)_&]:brightness-110"
+            style={{
+              backgroundImage: "url('/images/caldim-logo.svg')",
+              backgroundSize: "min(640px, 52vw)",
+            }}
+            aria-hidden="true"
+          />
+          <div className="relative z-10">
+            <SoftwareStandards />
+            <TaglineMarquee />
+            <Certifications certifications={content.certifications} />
+            <WhyUs pillars={content.pillars} />
+          </div>
+        </div>
         <Leadership leaders={content.leaders} />
         <Team />
         <Careers careers={content.careers} />

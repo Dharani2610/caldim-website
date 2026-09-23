@@ -16,18 +16,11 @@ const taglines = [
 export default function TaglineMarquee() {
   return (
     <section
-      className="relative overflow-hidden border-b border-blueprint bg-steel-950 py-5"
+      className="relative overflow-hidden border-b border-blueprint bg-transparent py-5"
       aria-label="What we stand for"
     >
-      {/* Feathered edges, so a line enters and leaves rather than being cut. */}
-      <div
-        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-steel-950 to-transparent md:w-28"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-steel-950 to-transparent md:w-28"
-        aria-hidden="true"
-      />
+
+
 
       {/* The visible track is duplicated so the translate can loop seamlessly;
           it is hidden from assistive tech and the real list is read once,

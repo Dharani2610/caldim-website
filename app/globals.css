@@ -74,10 +74,7 @@ html {
   scroll-behavior: auto;
 }
 
-html.light {
-  background: linear-gradient(135deg, #E2EFFC 0%, #D2E6FA 50%, #BFE0F8 100%);
-  background-attachment: fixed;
-}
+
 
 html:not(.light) {
   background: linear-gradient(135deg, rgb(var(--color-steel-950)) 0%, #0C1929 50%, rgb(var(--color-steel-950)) 100%);
