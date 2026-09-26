@@ -37,15 +37,15 @@ function LeaderCard({ leader, index }: { leader: LeaderView; index: number }) {
   const [transform, setTransform] = useState<CardTransform>(NEUTRAL);
   const [active, setActive] = useState(false);
   const [entered, setEntered] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [isTapped, setIsTapped] = useState(false);
+
+  const isRevealed = isHovered || isFocused || isTapped;
 
   /**
    * The cards swing in on their own Y axis as they scroll into view, each one
    * a little after the last.
-   *
-   * This is a real rotation in perspective, not a fade with a slide: the card
-   * starts turned away and edge-lit, and the near edge arrives before the far
-   * one. It sits on its own wrapper so it composes with the pointer tilt
-   * below rather than fighting it for the same transform property.
    */
   useEffect(() => {
     const element = shell.current;
@@ -68,9 +68,14 @@ function LeaderCard({ leader, index }: { leader: LeaderView; index: number }) {
     return () => observer.disconnect();
   }, [index]);
 
+  const handlePointerEnter = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse") {
+      setIsHovered(true);
+      setActive(true);
+    }
+  };
+
   const handleMove = (event: PointerEvent<HTMLDivElement>) => {
-    // Coarse pointers get no tilt: on a phone the "hover" is the tap that is
-    // about to scroll the page, and a lurching card fights that gesture.
     if (event.pointerType !== "mouse") return;
     const element = ref.current;
     if (!element) return;
@@ -81,16 +86,15 @@ function LeaderCard({ leader, index }: { leader: LeaderView; index: number }) {
     const py = (event.clientY - rect.top) / rect.height - 0.5;
 
     setActive(true);
+    setIsHovered(true);
     setTransform({
       card: {
-        transform: `perspective(1100px) rotateX(${(-py * 9).toFixed(2)}deg) rotateY(${(
-          px * 11
-        ).toFixed(2)}deg) translateZ(14px)`,
+        transform: `perspective(1100px) rotateX(${(-py * 8).toFixed(2)}deg) rotateY(${(
+          px * 10
+        ).toFixed(2)}deg) translateZ(12px)`,
       },
-      // A soft specular highlight that tracks the pointer. Without it the
-      // rotation reads as a skew; with it, the surface reads as lit.
       glare: {
-        opacity: 0.5,
+        opacity: 0.45,
         background: `radial-gradient(420px circle at ${(px + 0.5) * 100}% ${
           (py + 0.5) * 100
         }%, rgb(var(--color-accent) / 0.16), transparent 62%)`,
@@ -100,7 +104,25 @@ function LeaderCard({ leader, index }: { leader: LeaderView; index: number }) {
 
   const handleLeave = () => {
     setActive(false);
+    setIsHovered(false);
     setTransform(NEUTRAL);
+  };
+
+  const handleFocus = () => setIsFocused(true);
+  const handleBlur = () => setIsFocused(false);
+
+  const handleClick = () => {
+    setIsTapped((prev) => !prev);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setIsTapped((prev) => !prev);
+    } else if (e.key === "Escape") {
+      setIsTapped(false);
+      setIsFocused(false);
+    }
   };
 
   return (
@@ -116,117 +138,236 @@ function LeaderCard({ leader, index }: { leader: LeaderView; index: number }) {
         >
           <div
             ref={ref}
+            tabIndex={0}
+            role="region"
+            aria-label={`${leader.name}, ${leader.title} — ${isRevealed ? "Bio details shown" : "Hover or tap to view bio"}`}
+            aria-expanded={isRevealed}
+            onPointerEnter={handlePointerEnter}
             onPointerMove={handleMove}
             onPointerLeave={handleLeave}
-            className="group relative h-full"
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onClick={handleClick}
+            onKeyDown={handleKeyDown}
+            className="group relative h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-steel-950 rounded-2xl"
             style={{ perspective: "1100px" }}
           >
-        <article
-          className="card-surface relative h-full overflow-hidden rounded-2xl border border-blueprint bg-steel-900/50 motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-out-expo will-change-transform hover:border-blueprint-light"
-          style={{ ...transform.card, transformStyle: "preserve-3d" }}
-        >
-          {/* Blueprint texture, pushed furthest back in the stack. */}
-          <div
-            className="pointer-events-none absolute inset-0 bp-grid-fine opacity-[0.06]"
-            style={{ transform: "translateZ(0px)" }}
-            aria-hidden="true"
-          />
-
-          {/* Portrait plane. */}
-          {/* The portraits are cut-outs composited onto white, so the plate is
-              white too — a dark plate would show as a hard edge around each
-              subject rather than a studio backdrop. */}
-          {/* Square, matching the portrait files. A 4:5 plate would crop a
-              fifth off each side and undo the wider framing. */}
-          <div
-            className="relative aspect-square w-full overflow-hidden bg-white"
-            style={{ transform: "translateZ(18px)" }}
-          >
-            {leader.photoUrl ? (
-              <Image
-                src={leader.photoUrl}
-                alt={leader.photoAlt}
-                fill
-                sizes="(min-width: 1280px) 360px, (min-width: 768px) 33vw, 90vw"
-                quality={90}
-                className="object-cover object-top motion-safe:transition-transform motion-safe:duration-700 motion-safe:ease-out-expo group-hover:scale-[1.03]"
+            <article
+              className="card-surface relative h-full overflow-hidden rounded-2xl border border-blueprint bg-steel-900/50 motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-out-expo will-change-transform hover:border-blueprint-light"
+              style={{ ...transform.card, transformStyle: "preserve-3d" }}
+            >
+              {/* Blueprint texture, pushed furthest back in the stack. */}
+              <div
+                className="pointer-events-none absolute inset-0 bp-grid-fine opacity-[0.06]"
+                style={{ transform: "translateZ(0px)" }}
+                aria-hidden="true"
               />
-            ) : (
-              <MonogramPortrait initials={leader.initials} />
-            )}
 
-            {/* Scrim, so the name plate below always has something to sit on. */}
-            <div
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-steel-900 via-steel-900/60 to-transparent"
-              aria-hidden="true"
-            />
-          </div>
+              {/* FRONT FACE: Default portrait & nameplate (maintains natural card height) */}
+              <div
+                className={`relative flex flex-col h-full transition-opacity duration-300 ease-out motion-reduce:transition-none ${
+                  isRevealed
+                    ? "opacity-0 pointer-events-none"
+                    : "opacity-100 group-hover:opacity-0 group-focus-within:opacity-0"
+                }`}
+                style={{ transform: "translateZ(18px)" }}
+              >
+                {/* Portrait plane */}
+                <div className="relative aspect-square w-full overflow-hidden bg-white">
+                  {leader.photoUrl ? (
+                    <Image
+                      src={leader.photoUrl}
+                      alt={leader.photoAlt}
+                      fill
+                      sizes="(min-width: 1280px) 360px, (min-width: 768px) 33vw, 90vw"
+                      quality={90}
+                      className="object-cover object-top motion-safe:transition-transform motion-safe:duration-700 motion-safe:ease-out-expo group-hover:scale-[1.03]"
+                    />
+                  ) : (
+                    <MonogramPortrait initials={leader.initials} />
+                  )}
 
-          {/* Text plane. */}
-          <div className="relative p-6" style={{ transform: "translateZ(30px)" }}>
-            <h3 className="font-display text-xl font-semibold leading-tight text-paper">
-              {leader.name}
-            </h3>
-            <p className="mt-1 text-sm font-medium text-paper-dim">{leader.title}</p>
+                  {/* Scrim */}
+                  <div
+                    className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-steel-900 via-steel-900/60 to-transparent"
+                    aria-hidden="true"
+                  />
+                </div>
 
-            {leader.credentials && (
-              <p className="label-mono-sm mt-2 text-accent">{leader.credentials}</p>
-            )}
+                {/* Front text plate */}
+                <div className="relative p-6 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-display text-xl font-semibold leading-tight text-paper">
+                      {leader.name}
+                    </h3>
+                    <p className="mt-1 text-sm font-medium text-paper-dim">{leader.title}</p>
 
-            {leader.bio && (
-              <p className="mt-4 border-t border-blueprint pt-4 text-sm leading-relaxed text-paper-dim">
-                {leader.bio}
-              </p>
-            )}
+                    {leader.credentials && (
+                      <p className="label-mono-sm mt-2 text-accent">{leader.credentials}</p>
+                    )}
+                  </div>
 
-            {(leader.location || leader.email || leader.linkedinUrl) && (
-              <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
-                {leader.location && (
-                  <span className="label-mono-sm inline-flex items-center gap-1.5 text-paper-dim/80">
-                    <MapPin size={12} aria-hidden="true" />
-                    {leader.location}
-                  </span>
-                )}
-                {leader.email && (
-                  <a
-                    href={`mailto:${leader.email}`}
-                    className="label-mono-sm inline-flex items-center gap-1.5 text-paper-dim/80 transition-colors hover:text-accent"
-                  >
-                    <Mail size={12} aria-hidden="true" />
-                    <span className="sr-only">Email </span>
+                  {(leader.location || leader.email || leader.linkedinUrl) && (
+                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+                      {leader.location && (
+                        <span className="label-mono-sm inline-flex items-center gap-1.5 text-paper-dim/80">
+                          <MapPin size={12} aria-hidden="true" />
+                          {leader.location}
+                        </span>
+                      )}
+                      {leader.email && (
+                        <span className="label-mono-sm inline-flex items-center gap-1.5 text-paper-dim/80">
+                          <Mail size={12} aria-hidden="true" />
+                          Email
+                        </span>
+                      )}
+                      {leader.linkedinUrl && (
+                        <span className="label-mono-sm inline-flex items-center gap-1.5 text-paper-dim/80">
+                          <Linkedin size={12} aria-hidden="true" />
+                          LinkedIn
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* BACK / REVEALED BIO FACE: Compact bio details view */}
+              <div
+                className={`absolute inset-0 z-20 flex flex-col p-5 bg-steel-900/95 backdrop-blur-md transition-opacity duration-300 ease-out motion-reduce:transition-none ${
+                  isRevealed
+                    ? "opacity-100 pointer-events-auto"
+                    : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+                }`}
+                style={{ transform: "translateZ(30px)" }}
+              >
+                {/* Subtle blueprint grid overlay */}
+                <div className="pointer-events-none absolute inset-0 bp-grid-fine opacity-[0.08]" aria-hidden="true" />
+
+                {/* Top Section: Small Circular Photo (top-left) */}
+                <div className="relative flex-shrink-0">
+                  <div className="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-full border border-accent/40 bg-white shadow-md ring-2 ring-steel-950/80">
+                    {leader.photoUrl ? (
+                      <Image
+                        src={leader.photoUrl}
+                        alt={leader.photoAlt}
+                        fill
+                        sizes="44px"
+                        quality={90}
+                        className="object-cover object-top"
+                      />
+                    ) : (
+                      <MonogramPortrait initials={leader.initials} />
+                    )}
+                  </div>
+                </div>
+
+                {/* Below Circular Photo: Leader Name and Title */}
+                <div className="relative mt-2 flex-shrink-0">
+                  <h4 className="font-display text-base font-semibold leading-tight text-paper">
                     {leader.name}
-                  </a>
-                )}
-                {leader.linkedinUrl && (
-                  <a
-                    href={leader.linkedinUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="label-mono-sm inline-flex items-center gap-1.5 text-paper-dim/80 transition-colors hover:text-accent"
-                  >
-                    <Linkedin size={12} aria-hidden="true" />
-                    LinkedIn
-                    <span className="sr-only"> profile for {leader.name} (opens in a new tab)</span>
-                  </a>
+                  </h4>
+                  <p className="label-mono-sm mt-0.5 text-xs text-accent font-medium">
+                    {leader.title}
+                  </p>
+                </div>
+
+                {/* Middle Section: Scrollable Bio Content (Education, Experience, Highlights) */}
+                <div className="relative my-2 flex-1 overflow-y-auto pr-1 pb-1 text-left space-y-2 focus:outline-none scrollbar-thin">
+                  {leader.education && (
+                    <div className="space-y-0.5">
+                      <span className="label-mono-sm block text-[9.5px] uppercase tracking-wider text-accent/85 font-semibold">
+                        Education
+                      </span>
+                      <p className="text-xs font-medium leading-snug text-paper">
+                        {leader.education}
+                      </p>
+                    </div>
+                  )}
+
+                  {leader.experience && (
+                    <div className="space-y-0.5">
+                      <span className="label-mono-sm block text-[9.5px] uppercase tracking-wider text-accent/85 font-semibold">
+                        Experience
+                      </span>
+                      <p className="text-xs font-medium leading-snug text-paper">
+                        {leader.experience}
+                      </p>
+                    </div>
+                  )}
+
+                  {leader.highlights && leader.highlights.length > 0 && (
+                    <div className="space-y-1 pt-0.5">
+                      <span className="label-mono-sm block text-[9.5px] uppercase tracking-wider text-accent/85 font-semibold">
+                        Key Highlights
+                      </span>
+                      <ul className="space-y-1 text-[11px] leading-relaxed text-paper-dim">
+                        {leader.highlights.map((point, i) => (
+                          <li key={i} className="flex items-start gap-1.5">
+                            <span className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-accent" aria-hidden="true" />
+                            <span>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {leader.bio && (
+                    <p className="border-t border-blueprint/60 pt-2 text-xs leading-relaxed text-paper-dim">
+                      {leader.bio}
+                    </p>
+                  )}
+                </div>
+
+                {/* Bottom Section: Compact Contact / Social Links */}
+                {(leader.location || leader.email || leader.linkedinUrl) && (
+                  <div className="relative flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-blueprint/60 pt-2 flex-shrink-0">
+                    {leader.location && (
+                      <span className="label-mono-sm inline-flex items-center gap-1 text-[10px] text-paper-dim/80">
+                        <MapPin size={10} aria-hidden="true" />
+                        {leader.location}
+                      </span>
+                    )}
+                    {leader.email && (
+                      <a
+                        href={`mailto:${leader.email}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="label-mono-sm inline-flex items-center gap-1 text-[10px] text-paper-dim/80 transition-colors hover:text-accent"
+                      >
+                        <Mail size={10} aria-hidden="true" />
+                        Email
+                      </a>
+                    )}
+                    {leader.linkedinUrl && (
+                      <a
+                        href={leader.linkedinUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="label-mono-sm inline-flex items-center gap-1 text-[10px] text-paper-dim/80 transition-colors hover:text-accent"
+                      >
+                        <Linkedin size={10} aria-hidden="true" />
+                        LinkedIn
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
 
-          {/* Specular highlight, sitting above every plane. */}
-          <div
-            className="pointer-events-none absolute inset-0 transition-opacity duration-300"
-            style={{ ...transform.glare, transform: "translateZ(60px)" }}
-            aria-hidden="true"
-          />
+              {/* Specular highlight, sitting above every plane */}
+              <div
+                className="pointer-events-none absolute inset-0 transition-opacity duration-300"
+                style={{ ...transform.glare, transform: "translateZ(60px)" }}
+                aria-hidden="true"
+              />
 
-          {/* Accent edge that lights along the bottom on hover. */}
-          <div
-            className={`pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent transition-opacity duration-300 ${
-              active ? "opacity-80" : "opacity-0"
-            }`}
-            aria-hidden="true"
-          />
+              {/* Accent edge that lights along the bottom on hover */}
+              <div
+                className={`pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent transition-opacity duration-300 ${
+                  active ? "opacity-80" : "opacity-0"
+                }`}
+                aria-hidden="true"
+              />
             </article>
           </div>
         </div>

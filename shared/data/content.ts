@@ -286,14 +286,31 @@ export const projectTypes = services.map((s) => s.title);
 
 export const offices = [
   {
-    city: "Registered Office — Hosur",
-    address:
-      "CALDIM Engineering Pvt. Ltd.\nPlot No. 22, 23, 24, 2nd Floor, Durga Bhavani Towers,\nNear RTO Check Post, NH 207, Bagalur Road,\nHosur – 635103, Tamil Nadu, India",
-  },
-  {
     city: "Corporate Office — Chennai",
     address:
-      "Minmac Center #118, First Floor,\nArcot Road, Valasaravalakkam,\nChennai – 600087, Tamil Nadu, India",
+      "Minimac Center #118, First Floor,\nArcot Road, Valasaravakkam,\nChennai – 600087, Tamil Nadu, India",
+    name: "",
+    phone: "248-455 3855",
+    tag: "HEADQUARTERS",
+    isInternational: false,
+  },
+  {
+    city: "Registered Office — Hosur",
+    address:
+      "Plot No. 22, 23, 24, 2nd Floor, Durga Bhavani Towers,\nNear RTO Check Post, NH 207, Bagalur Road,\nHosur – 635103, Tamil Nadu, India",
+    name: "",
+    phone: "04344610637",
+    tag: "BRANCH OFFICE",
+    isInternational: false,
+  },
+  {
+    city: "USA — INTERNATIONAL OFFICE",
+    address:
+      "8668 John Hickman Pkwy, Suite 903, Frisco, Texas 75034, USA",
+    name: "Caldim Tech Services LLC",
+    phone: "+1 (248) 455-3855",
+    tag: "INTERNATIONAL EXTENSION",
+    isInternational: true,
   },
 ] as const;
 

@@ -13,16 +13,26 @@
    a near-black label box and mid-grey text stayed put when the page went
    light, and quietly became invisible. */
 :root {
-  --color-steel-950: 11 15 20;      /* page background */
-  --color-steel-900: 14 20 27;      /* alternating section background */
-  --color-blueprint: 26 35 50;      /* borders, dividers, grid lines */
-  --color-blueprint-light: 36 48 74; /* hover borders, lighter dividers */
-  --color-paper: 232 236 239;       /* primary text */
-  --color-paper-dim: 167 176 184;   /* secondary text */
-  --color-accent: 63 169 232;       /* brand accent (buttons, links, borders) */
-  --color-accent-vivid: 63 169 232; /* vivid brand accent for graphics */
-  --color-orange-safety: 249 115 22;/* secondary safety / compliance highlight */
-  --color-glow: 63 169 232;         /* ambient halo behind the glowing drawings */
+  --color-steel-950: 11 15 20;
+  /* page background */
+  --color-steel-900: 14 20 27;
+  /* alternating section background */
+  --color-blueprint: 26 35 50;
+  /* borders, dividers, grid lines */
+  --color-blueprint-light: 36 48 74;
+  /* hover borders, lighter dividers */
+  --color-paper: 232 236 239;
+  /* primary text */
+  --color-paper-dim: 167 176 184;
+  /* secondary text */
+  --color-accent: 63 169 232;
+  /* brand accent (buttons, links, borders) */
+  --color-accent-vivid: 63 169 232;
+  /* vivid brand accent for graphics */
+  --color-orange-safety: 249 115 22;
+  /* secondary safety / compliance highlight */
+  --color-glow: 63 169 232;
+  /* ambient halo behind the glowing drawings */
 
   /* Steel rendered in 3D and in drawing marks — reads as metal on dark. */
   --color-steel-mark: 184 191 199;
@@ -42,16 +52,26 @@
 }
 
 :root.light {
-  --color-steel-950: 236 244 253;   /* soft steel ice-blue background (#ECF4FD) */
-  --color-steel-900: 224 237 251;   /* alternating blueprint ice-blue section background (#E0EDFB) */
-  --color-blueprint: 180 205 235;   /* subtle structural blue borders */
-  --color-blueprint-light: 140 180 225; /* hover borders */
-  --color-paper: 15 23 32;          /* primary text (dark on light) */
-  --color-paper-dim: 65 85 110;     /* secondary text — high contrast */
-  --color-accent: 30 93 191;        /* brand engineering blue (#1E5DBF), 5.76:1 contrast on light ground */
-  --color-accent-vivid: 42 107 204; /* core logo blue (#2A6BCC) for graphic fills */
-  --color-orange-safety: 234 88 12; /* secondary safety / compliance highlight (#EA580C) */
-  --color-glow: 42 107 204;         /* blue glow */
+  --color-steel-950: 236 244 253;
+  /* soft steel ice-blue background (#ECF4FD) */
+  --color-steel-900: 224 237 251;
+  /* alternating blueprint ice-blue section background (#E0EDFB) */
+  --color-blueprint: 180 205 235;
+  /* subtle structural blue borders */
+  --color-blueprint-light: 140 180 225;
+  /* hover borders */
+  --color-paper: 15 23 32;
+  /* primary text (dark on light) */
+  --color-paper-dim: 65 85 110;
+  /* secondary text — high contrast */
+  --color-accent: 30 93 191;
+  /* brand engineering blue (#1E5DBF), 5.76:1 contrast on light ground */
+  --color-accent-vivid: 42 107 204;
+  /* core logo blue (#2A6BCC) for graphic fills */
+  --color-orange-safety: 234 88 12;
+  /* secondary safety / compliance highlight (#EA580C) */
+  --color-glow: 42 107 204;
+  /* blue glow */
 
   --color-steel-mark: 60 80 100;
   --color-mark-cool: 37 78 168;
@@ -158,12 +178,15 @@ p {
 .border-cert {
   border-color: var(--border-cert);
 }
+
 .border-process-active {
   border-color: var(--border-process-active);
 }
+
 .border-btn-outline {
   border-color: var(--border-btn-outline);
 }
+
 .border-btn-solid {
   border-color: var(--border-btn-solid);
 }
@@ -175,6 +198,7 @@ p {
   transition: box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1),
     border-color 0.28s ease, background-color 0.28s ease;
 }
+
 .card-surface:hover {
   box-shadow: var(--shadow-card-hover);
 }
@@ -200,9 +224,11 @@ p {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
+
 .snap-track::-webkit-scrollbar {
   display: none;
 }
+
 .snap-item {
   scroll-snap-align: center;
 }
@@ -215,12 +241,14 @@ p {
   transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
+
 .reveal.is-visible {
   opacity: 1;
   transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -237,3 +265,135 @@ p {
     transform: none;
   }
 }
+
+/* ===== Premium animated service cards (keep OUTSIDE any @layer) ===== */
+  @property --premium-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  :root {
+    --premium-card-bg-top: #1a3a7a;
+    /* royal blue (top-left) */
+    --premium-card-bg-mid: #0d1f4a;
+    /* deep navy (middle) */
+    --premium-card-bg-bottom: #050b1f;
+    /* near-black blue (bottom-right) */
+    --premium-gold: #d4af37;
+    --premium-gold-light: #f5e6a8;
+    --premium-gold-deep: #9a7420;
+    --premium-steel: #6b7fa3;
+  }
+
+  .premium-card {
+    border: 1px solid transparent !important;
+    overflow: hidden;
+    background-color: var(--premium-card-bg-mid) !important;
+    background:
+      linear-gradient(160deg,
+        var(--premium-card-bg-top) 0%,
+        var(--premium-card-bg-mid) 55%,
+        var(--premium-card-bg-bottom) 100%) padding-box,
+      conic-gradient(from var(--premium-angle),
+        var(--premium-gold),
+        var(--premium-gold-light),
+        var(--premium-steel),
+        var(--premium-gold-deep),
+        var(--premium-steel),
+        var(--premium-gold)) border-box !important;
+    animation:
+      premium-spin 6s linear infinite,
+      premium-glow 4s ease-in-out infinite;
+    transition: box-shadow 0.4s ease;
+  }
+
+  /* Moving light sheen across the card surface */
+  .premium-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(115deg,
+        transparent 30%,
+        rgba(245, 230, 168, 0.07) 45%,
+        rgba(255, 255, 255, 0.12) 50%,
+        rgba(245, 230, 168, 0.07) 55%,
+        transparent 70%);
+    background-size: 250% 100%;
+    animation: premium-sheen 5s ease-in-out infinite;
+  }
+
+  .premium-card:hover {
+    animation-duration: 3s, 4s;
+    box-shadow:
+      0 0 28px rgba(212, 175, 55, 0.35),
+      0 12px 40px rgba(0, 0, 0, 0.45);
+  }
+
+  .premium-text {
+    color: var(--premium-gold);
+  }
+
+  .premium-text-soft {
+    color: rgba(245, 230, 168, 0.75);
+  }
+
+  .premium-divider {
+    border-color: rgba(212, 175, 55, 0.3);
+  }
+
+  .premium-underline {
+    background: linear-gradient(90deg, var(--premium-gold-deep), var(--premium-gold-light), var(--premium-gold));
+  }
+
+  @keyframes premium-spin {
+    to {
+      --premium-angle: 360deg;
+    }
+  }
+
+  @keyframes premium-glow {
+
+    0%,
+    100% {
+      box-shadow: 0 0 12px rgba(212, 175, 55, 0.12), 0 8px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    50% {
+      box-shadow: 0 0 24px rgba(212, 175, 55, 0.28), 0 8px 30px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  @keyframes premium-sheen {
+    0% {
+      background-position: 150% 0;
+    }
+
+    60% {
+      background-position: -50% 0;
+    }
+
+    100% {
+      background-position: -50% 0;
+    }
+  }
+
+  /* This rule must stay INSIDE the media query */
+  @media (prefers-reduced-motion: reduce) {
+
+    .premium-card,
+    .premium-card::after {
+      animation: none;
+    }
+
+    .premium-card {
+      background:
+        linear-gradient(160deg,
+          var(--premium-card-bg-top) 0%,
+          var(--premium-card-bg-mid) 55%,
+          var(--premium-card-bg-bottom) 100%) padding-box,
+        linear-gradient(135deg, var(--premium-gold), var(--premium-steel)) border-box !important;
+    }
+  }

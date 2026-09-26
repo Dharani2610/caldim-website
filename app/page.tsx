@@ -16,6 +16,7 @@ import Team from "@/frontend/components/sections/Team";
 import Careers from "@/frontend/components/sections/Careers";
 import Testimonials from "@/frontend/components/sections/Testimonials";
 import Contact from "@/frontend/components/sections/Contact";
+import EngineeredAcrossBorders from "@/frontend/components/sections/EngineeredAcrossBorders";
 import Footer from "@/frontend/components/sections/Footer";
 import { getSiteContent } from "@/backend/content/getSiteContent";
 
@@ -50,7 +51,7 @@ export default async function Home() {
           <div
             className="pointer-events-none absolute inset-0 bg-fixed bg-center bg-no-repeat opacity-[0.06] [html.light_&]:opacity-[0.07] [html:not(.light)_&]:brightness-110"
             style={{
-              backgroundImage: "url('/images/caldim-logo.svg')",
+              backgroundImage: "url('/images/caldim-ogo.png')",
               backgroundSize: "min(640px, 52vw)",
             }}
             aria-hidden="true"
@@ -71,6 +72,7 @@ export default async function Home() {
           offices={content.offices}
           directContacts={content.directContacts}
         />
+        <EngineeredAcrossBorders />
       </main>
       <Footer services={content.services} />
     </>

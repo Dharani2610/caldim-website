@@ -229,6 +229,10 @@ export const eventSchema = z.object({
 export const officeSchema = z.object({
   city: safeText(120, 1),
   address: safeText(500, 1),
+  name: optionalText(120),
+  phone: optionalText(60),
+  tag: optionalText(60),
+  isInternational: z.coerce.boolean().optional().default(false),
 });
 
 export const directContactSchema = z.object({

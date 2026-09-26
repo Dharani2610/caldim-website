@@ -2,41 +2,31 @@ import { BadgeCheck } from "lucide-react";
 import Reveal from "@/frontend/components/ui/Reveal";
 import SectionHeading from "@/frontend/components/ui/SectionHeading";
 
-function AiscSeal({ className = "w-full h-full" }: { className?: string }) {
+export function AiscSeal({ className = "w-full h-full" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 300 300" className={className} fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="AISC Seal">
-      <defs>
-        <path id="aisc-top-arc-in" d="M 42 150 A 108 108 0 0 1 258 150" fill="none" />
-        <path id="aisc-bottom-arc-in" d="M 258 150 A 108 108 0 0 1 42 150" fill="none" />
-      </defs>
-      <circle cx="150" cy="150" r="142" stroke="currentColor" strokeWidth="12" />
-      <circle cx="150" cy="150" r="132" stroke="currentColor" strokeWidth="2.5" />
-      <circle cx="150" cy="150" r="88" stroke="currentColor" strokeWidth="5" />
-      <text fontFamily="'Space Grotesk', 'Arial Black', Impact, sans-serif" fontWeight="900" fontSize="13.5" fill="currentColor" letterSpacing="1.8">
-        <textPath href="#aisc-top-arc-in" startOffset="50%" textAnchor="middle">
-          AMERICAN INSTITUTE OF STEEL CONSTRUCTION
-        </textPath>
-      </text>
-      <text fontFamily="'Space Grotesk', 'Arial Black', Impact, sans-serif" fontWeight="900" fontSize="14.5" fill="currentColor" letterSpacing="2.8">
-        <textPath href="#aisc-bottom-arc-in" startOffset="50%" textAnchor="middle">
-          ★ FOUNDED 1921 ★
-        </textPath>
-      </text>
-      <g fill="currentColor">
-        <path d="M 94 88 C 80 102 74 122 74 150 C 74 178 80 198 94 212 L 108 212 C 98 196 92 178 92 150 C 92 122 98 104 108 88 Z" />
-        <rect x="110" y="88" width="12" height="124" rx="2" />
-        <rect x="94" y="148" width="28" height="11" />
-        <rect x="131" y="88" width="13" height="124" rx="2" />
-        <path d="M 172 88 L 152 88 L 152 100 L 168 100 C 172 100 174 104 174 110 L 174 136 C 174 142 170 146 164 146 L 152 146 L 152 212 L 164 212 C 176 212 186 202 186 190 L 186 160 C 186 150 178 142 168 140 C 176 138 184 130 184 120 L 184 106 C 184 94 178 88 172 88 Z M 174 188 C 174 196 170 200 164 200 L 164 158 C 170 158 174 164 174 172 Z" />
-        <path d="M 206 88 C 196 104 190 122 190 150 C 190 178 196 196 206 212 L 220 212 C 206 198 200 178 200 150 C 200 122 206 102 220 88 Z" />
-        <path d="M 204 88 L 226 88 C 226 88 222 100 206 100 Z" />
-        <path d="M 204 212 L 226 212 C 226 212 222 200 206 200 Z" />
-      </g>
-    </svg>
+    <div
+      className={`${className} flex items-center justify-center`}
+      role="img"
+      aria-label="American Institute of Steel Construction Seal"
+    >
+      <div
+        className="w-full h-full bg-paper transition-colors"
+        style={{
+          maskImage: "url(/images/certifications/aisc-seal-white.png)",
+          WebkitMaskImage: "url(/images/certifications/aisc-seal-white.png)",
+          maskSize: "contain",
+          WebkitMaskSize: "contain",
+          maskRepeat: "no-repeat",
+          WebkitMaskRepeat: "no-repeat",
+          maskPosition: "center",
+          WebkitMaskPosition: "center",
+        }}
+      />
+    </div>
   );
 }
 
-function NisdSeal({ className = "w-full h-full" }: { className?: string }) {
+export function NisdSeal({ className = "w-full h-full" }: { className?: string }) {
   return (
     <svg viewBox="0 0 300 320" className={className} fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="NISD Member Seal">
       <defs>
