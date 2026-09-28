@@ -29,6 +29,7 @@ const BAY_Z = 3.2;
 const EAST_DECK_DEPTH = 4.15;
 const WEST_DECK_DEPTH = 3.35;
 const EAST_DECK_FRONT_EDGE_Z = EAST_DECK_DEPTH / 2; // 2.075
+const WEST_DECK_FRONT_EDGE_Z = WEST_DECK_DEPTH / 2; // 1.675
 
 /** Deck heights for 5 levels (ground = 0) */
 const DECK_LEVELS = [2.4, 4.8, 7.2, 9.6, 12.0] as const;
@@ -41,13 +42,40 @@ const railMidFor = (deckY: number) => deckY + 0.55;
 
 /** Staircase engineering constants */
 const STRINGER_D = 0.26;
-const STAIR_W = 1.15;
-const TREAD_GOING = 0.26; // 260mm standard tread depth
+const STAIR_W = 1.10;
+const LANE_GAP = 0.10;
+const TREAD_GOING = 0.3333; // 333.3mm standard architectural tread going for 4.0m run
 const TREAD_THICKNESS = 0.045;
 
-/** External Staircase Z-position derived from East Wing deck edge with exterior clearance */
-const STAIR_CLEARANCE_FROM_DECK = 0.775;
-const STAIR_Z = EAST_DECK_FRONT_EDGE_Z + STAIR_CLEARANCE_FROM_DECK; // = 2.85 (clearly projecting outside deck front edge 2.075)
+/** External Staircase dual-lane Z-positions */
+// Front column grid line is at Z = 1.60. West Wing deck front edge is at Z = 1.675.
+// Lane A (inner lane) centerline at Z = 2.35 (inner stringer at Z = 1.80, clear of deck 1.675).
+// Lane B (outer lane) centerline at Z = 3.55 (inner stringer at Z = 3.00, outer at Z = 4.10).
+const STAIR_Z_LANE_A = 2.35;
+const STAIR_Z_LANE_B = 3.55;
+const STAIR_Z = STAIR_Z_LANE_A; // Backward-compatible alias
+
+/** Dual-lane landing Z footprint (spans from building line Z = 1.60 out to Z = 4.30) */
+const LANDING_Z_MIN = 1.60;
+const LANDING_Z_MAX = 4.30;
+const LANDING_DEPTH_Z = LANDING_Z_MAX - LANDING_Z_MIN; // = 2.70m (wide enough to comfortably span both lanes and turn)
+const LANDING_MID_Z = (LANDING_Z_MIN + LANDING_Z_MAX) / 2; // = 2.95m
+
+/** Staircase horizontal run & landing bounds along X */
+// Left Landing spans X in [-7.20, -5.60], depth along run = 1.60m (>= 1.5m), middle line = -6.40 (matches column X = -6.40).
+// Right Landing spans X in [-3.20, -1.60], depth along run = 1.60m (>= 1.5m), middle line = -2.40.
+const LANDING_DEPTH_X = 1.60;
+const LEFT_LANDING_MID_X = -6.40;
+const LEFT_LANDING_X_MIN = -7.20;
+const LEFT_LANDING_X_MAX = -5.60;
+
+const RIGHT_LANDING_MID_X = -2.40;
+const RIGHT_LANDING_X_MIN = -3.20;
+const RIGHT_LANDING_X_MAX = -1.60;
+
+// Flights start & end exactly at the landing middle lines:
+const STAIR_X_LEFT = -6.40; // Middle line of Left Landing
+const STAIR_X_RIGHT = -2.40; // Middle line of Right Landing
 
 type Vec3 = [number, number, number];
 
@@ -116,11 +144,13 @@ const COLUMN_GRID_10: [number, number][] = [
 ];
 
 interface FlightConfig {
+  id: number;
   fromY: number;
   toY: number;
   startX: number;
   endX: number;
   z: number;
+  lane: "A" | "B";
   isReduced?: boolean;
 }
 
@@ -136,7 +166,7 @@ function buildComplex(tier: DetailTier): { parts: Part[]; bolts: Bolt[] } {
 
   // Active columns (streamlined on reduced tier)
   const activeCols = isReduced
-    ? COLUMN_GRID_10.filter(([x]) => x >= -3.2) // 6 columns on reduced mobile
+    ? COLUMN_GRID_10.filter(([x]) => x <= 0.0) // 6 columns on reduced mobile
     : COLUMN_GRID_10; // 10 columns for dual-wing full tier
 
   // ── Stage 1: Foundations & Anchor Rods (0.15s - 0.75s) ───────────────────
@@ -374,30 +404,31 @@ function buildComplex(tier: DetailTier): { parts: Part[]; bolts: Bolt[] } {
     }
   });
 
-  // ── Stage 7: Precision Staircase Spine (1.8s - 7.5s) ──────────────────────
-  // Continuous interconnected stair flights with mathematically exact riser & going,
-  // projecting outside the building's exterior footprint on the front face.
+  // ── Stage 7: Precision Compact Industrial Staircase Tower (1.8s - 7.5s) ──
+  // Sequential switchback flights alternating between Lane A (z = 2.35) and Lane B (z = 3.55).
+  // Flight 1's top lands with gap = 0 on the landing surface.
+  // The next flight begins at the landing's MIDDLE line, continuing in the opposite direction.
+  // Flights sit almost directly above one another, maintaining full >= 2.03m vertical headroom.
   const stairFlights: FlightConfig[] = isReduced
     ? [
-      { fromY: 0.02, toY: decks[0], startX: 6.45, endX: 3.85, z: STAIR_Z, isReduced: true },
-      { fromY: decks[0], toY: decks[1], startX: 3.85, endX: 6.45, z: STAIR_Z, isReduced: true },
-      { fromY: decks[1], toY: decks[2], startX: 6.45, endX: 3.85, z: STAIR_Z, isReduced: true },
+      { id: 0, fromY: 0.02, toY: decks[0], startX: STAIR_X_LEFT, endX: STAIR_X_RIGHT, z: STAIR_Z_LANE_A, lane: "A", isReduced: true },
+      { id: 1, fromY: decks[0], toY: decks[1], startX: STAIR_X_RIGHT, endX: STAIR_X_LEFT, z: STAIR_Z_LANE_B, lane: "B", isReduced: true },
+      { id: 2, fromY: decks[1], toY: decks[2], startX: STAIR_X_LEFT, endX: STAIR_X_RIGHT, z: STAIR_Z_LANE_A, lane: "A", isReduced: true },
     ]
     : [
-      { fromY: 0.02, toY: decks[0], startX: 6.45, endX: 3.75, z: STAIR_Z },
-      { fromY: decks[0], toY: decks[1], startX: 3.75, endX: 6.45, z: STAIR_Z },
-      { fromY: decks[1], toY: decks[2], startX: 6.45, endX: 3.75, z: STAIR_Z },
-      { fromY: decks[2], toY: decks[3], startX: 3.75, endX: 6.45, z: STAIR_Z },
+      { id: 0, fromY: 0.02, toY: decks[0], startX: STAIR_X_LEFT, endX: STAIR_X_RIGHT, z: STAIR_Z_LANE_A, lane: "A" },
+      { id: 1, fromY: decks[0], toY: decks[1], startX: STAIR_X_RIGHT, endX: STAIR_X_LEFT, z: STAIR_Z_LANE_B, lane: "B" },
+      { id: 2, fromY: decks[1], toY: decks[2], startX: STAIR_X_LEFT, endX: STAIR_X_RIGHT, z: STAIR_Z_LANE_A, lane: "A" },
+      { id: 3, fromY: decks[2], toY: decks[3], startX: STAIR_X_RIGHT, endX: STAIR_X_LEFT, z: STAIR_Z_LANE_B, lane: "B" },
     ];
 
-  // Ground level foundation landing pad for external stair
-  const groundStartX = isReduced ? 3.85 : 3.75;
+  // Ground level foundation landing pad for external stair (at Left end, X in [-7.20, -5.60])
   parts.push({
     kind: "plate",
-    a: 1.3,
+    a: LANDING_DEPTH_X,
     b: 0.045,
-    c: STAIR_W + 0.25,
-    final: [groundStartX, 0.02, STAIR_Z],
+    c: LANDING_DEPTH_Z,
+    final: [LEFT_LANDING_MID_X, 0.02, LANDING_MID_Z],
     finalRot: [0, 0, 0],
     axisY: false,
     startTime: 1.6,
@@ -407,21 +438,23 @@ function buildComplex(tier: DetailTier): { parts: Part[]; bolts: Bolt[] } {
 
   stairFlights.forEach((flight, fIdx) => {
     const flightStartTime = 1.8 + fIdx * 1.35;
-    pushPrecisionStairFlight(parts, bolts, flight, flightStartTime);
+    const isRightLanding = flight.endX > flight.startX; // arriving at Right Landing
+    const landingMidX = isRightLanding ? RIGHT_LANDING_MID_X : LEFT_LANDING_MID_X;
+    const isOuterCol = !isRightLanding; // outer column cx = -6.4 for left landing, cx = -3.2 for right landing
 
-    // Connecting landing bridge linking external stair arrival landing back to building floor deck
-    const isOuterCol = flight.startX > 5.0; // 6.45 is outer column (cx=6.4), 3.75/3.85 is inner column (cx=3.2)
-    pushStairLandingBridge(
+    // 1. Landing and structural connecting bridge for this arrival floor
+    pushStairLandingAndBridge(
       parts,
       bolts,
-      flight.startX,
+      landingMidX,
       flight.toY,
-      STAIR_Z,
-      EAST_DECK_FRONT_EDGE_Z,
-      flightStartTime + 0.45,
+      flightStartTime,
       isOuterCol,
       isReduced
     );
+
+    // 2. Incremental stair flight erection (landing supports -> stringers -> treads -> handrails)
+    pushPrecisionStairFlight(parts, bolts, flight, flightStartTime + 0.16);
   });
 
   // Roof Access Safety Ladder (Level 4 to Roof Terrace)
@@ -440,7 +473,7 @@ function buildComplex(tier: DetailTier): { parts: Part[]; bolts: Bolt[] } {
 
 /**
  * Precision Staircase Flight Generator:
- * Calculates exact riser height and going depth per tread to guarantee zero overlap.
+ * Generates an isolated flight with uniform 200mm risers and 333.3mm goings (~30.96° slope).
  */
 function pushPrecisionStairFlight(
   parts: Part[],
@@ -453,49 +486,56 @@ function pushPrecisionStairFlight(
   const dir = endX > startX ? 1 : -1;
   const totalRun = Math.abs(endX - startX);
 
-  // Exact architectural riser height: ~200mm per step
   const numRisers = isReduced ? 10 : 12;
   const riserHeight = totalRise / numRisers;
   const numTreads = numRisers - 1; // 11 treads for 12 risers
   const stepGoing = totalRun / numRisers; // horizontal step spacing
-  const treadDepth = Math.max(0.24, Math.min(0.28, stepGoing * 1.05));
+  const treadDepth = Math.max(0.26, Math.min(0.32, stepGoing * 0.96));
 
   const runHypot = Math.hypot(totalRun, totalRise);
-  const slope = Math.atan2(totalRise, totalRun) * (dir > 0 ? -1 : 1);
+  const slope = (dir > 0 ? 1 : -1) * Math.atan2(totalRise, totalRun);
   const midX = (startX + endX) / 2;
   const midY = (fromY + toY) / 2;
   const halfW = STAIR_W / 2;
 
-  // 1. Channel Stringers (left & right)
+  // 1. Channel Stringers (left & right along flight width)
   [-1, 1].forEach((side, i) => {
     parts.push({
       kind: "channel",
-      a: runHypot + 0.15,
+      a: runHypot,
       b: STRINGER_D,
       c: 0.085,
-      final: [midX, midY - 0.06, z + side * halfW],
+      final: [midX, midY - 0.04, z + side * halfW],
       finalRot: [0, 0, slope],
       axisY: false,
       flip: side > 0,
-      startTime: baseTime + i * 0.06,
-      duration: 0.48,
-      dropHeight: 1.8,
+      startTime: baseTime + i * 0.05,
+      duration: 0.44,
+      dropHeight: 1.6,
     });
 
     // Base shoe mounting bolts
     bolts.push({
       tc: false,
-      final: [endX - dir * 0.1, fromY + 0.08, z + side * halfW],
+      final: [startX + dir * 0.08, fromY + 0.06, z + side * halfW],
       finalRot: [0, 0, 0],
-      startTime: baseTime + 0.38 + i * 0.04,
-      duration: 0.24,
+      startTime: baseTime + 0.28 + i * 0.03,
+      duration: 0.22,
+    });
+    // Top shoe mounting bolts
+    bolts.push({
+      tc: false,
+      final: [endX - dir * 0.08, toY - 0.06, z + side * halfW],
+      finalRot: [0, 0, 0],
+      startTime: baseTime + 0.32 + i * 0.03,
+      duration: 0.22,
     });
   });
 
-  // 2. Precision Stair Treads (Calculated uniformly from bottom landing to top)
+  // 2. Precision Stair Treads (Uniformly spaced bottom-to-top from Riser 1 to Riser 11)
   for (let k = 1; k <= numTreads; k += 1) {
     const treadY = fromY + k * riserHeight;
-    const treadX = endX - dir * (k * stepGoing);
+    const treadX = startX + dir * (k * stepGoing);
 
     parts.push({
       kind: "tread",
@@ -505,9 +545,9 @@ function pushPrecisionStairFlight(
       final: [treadX, treadY, z],
       finalRot: [0, 0, 0],
       axisY: false,
-      startTime: baseTime + 0.14 + k * 0.028,
-      duration: 0.34,
-      dropHeight: 0.9,
+      startTime: baseTime + 0.12 + k * 0.024,
+      duration: 0.32,
+      dropHeight: 0.85,
     });
   }
 
@@ -517,15 +557,15 @@ function pushPrecisionStairFlight(
     parts.push({
       kind: "rail",
       a: 0.042,
-      b: runHypot + 0.2,
+      b: runHypot + 0.15,
       c: 0.042,
       final: [midX, midY + 0.96, z + side * halfW],
       finalRot: [0, 0, Math.PI / 2 + slope],
       axisY: true,
       accent: true,
-      startTime: baseTime + 0.42 + sideIdx * 0.05,
-      duration: 0.4,
-      dropHeight: 1.2,
+      startTime: baseTime + 0.42 + sideIdx * 0.04,
+      duration: 0.38,
+      dropHeight: 1.1,
     });
 
     if (!isReduced) {
@@ -533,22 +573,22 @@ function pushPrecisionStairFlight(
       parts.push({
         kind: "rail",
         a: 0.034,
-        b: runHypot + 0.2,
+        b: runHypot + 0.15,
         c: 0.034,
-        final: [midX, midY + 0.48, z + side * halfW],
+        final: [midX, midY + 0.50, z + side * halfW],
         finalRot: [0, 0, Math.PI / 2 + slope],
         axisY: true,
         accent: true,
-        startTime: baseTime + 0.46 + sideIdx * 0.05,
-        duration: 0.4,
-        dropHeight: 1.2,
+        startTime: baseTime + 0.46 + sideIdx * 0.04,
+        duration: 0.38,
+        dropHeight: 1.1,
       });
     }
 
-    // Vertical railing stanchions
-    const stanchionFracs = isReduced ? [0.15, 0.85] : [0.1, 0.5, 0.9];
+    // Vertical railing stanchions aligned to stair pitch
+    const stanchionFracs = isReduced ? [0.15, 0.85] : [0.10, 0.50, 0.90];
     stanchionFracs.forEach((frac, pIdx) => {
-      const px = endX - dir * (frac * totalRun);
+      const px = startX + dir * (frac * totalRun);
       const py = fromY + frac * totalRise + 0.52;
       parts.push({
         kind: "rail",
@@ -559,97 +599,102 @@ function pushPrecisionStairFlight(
         finalRot: [0, 0, 0],
         axisY: true,
         accent: true,
-        startTime: baseTime + 0.38 + sideIdx * 0.04 + pIdx * 0.02,
-        duration: 0.36,
-        dropHeight: 1.0,
+        startTime: baseTime + 0.36 + sideIdx * 0.03 + pIdx * 0.02,
+        duration: 0.34,
+        dropHeight: 0.95,
       });
     });
-  });
-
-  // Intermediate landing plate at top of flight
-  parts.push({
-    kind: "plate",
-    a: 1.2,
-    b: 0.045,
-    c: STAIR_W + 0.1,
-    final: [startX, toY, z],
-    finalRot: [0, 0, 0],
-    axisY: false,
-    startTime: baseTime + 0.5,
-    duration: 0.36,
-    dropHeight: 1.1,
   });
 }
 
 /**
- * Structural connecting landing bridge linking external stair flights back to the building floor deck.
+ * Structural Landing Platform & Floor Connector Bridge Generator:
+ * Creates a flat, horizontal steel platform at floor level that clearly sits OUTSIDE
+ * the building frame and projects outward from it (1.6m deep along run, 2.7m across lanes).
+ * Complete with structural framing underneath, cantilever knee struts, and continuous perimeter guardrails.
  */
-function pushStairLandingBridge(
+function pushStairLandingAndBridge(
   parts: Part[],
   bolts: Bolt[],
-  landingX: number,
+  landingMidX: number,
   deckY: number,
-  stairZ: number,
-  deckEdgeZ: number,
   baseTime: number,
   isOuterCol: boolean,
   isReduced?: boolean
 ) {
   const beamY = beamYFor(deckY);
-  const zInner = 1.6; // Anchored directly into the front column line girder
-  const zOuter = stairZ;
-  const bridgeSpanZ = zOuter - zInner; // 2.85 - 1.6 = 1.25
-  const bridgeMidZ = (zInner + zOuter) / 2; // 2.225
-  const bridgeWidthX = 1.25;
+  const landingWidthX = LANDING_DEPTH_X; // 1.60m deep along run
 
-  // 1. Supporting Cantilever Outrigger Channels (Left & Right along Z)
-  [-1, 1].forEach((side, i) => {
-    const sideX = landingX + side * (bridgeWidthX / 2 - 0.04);
+  // 1. Landing Platform Plate (Spans across Z: [1.60, 4.30], depth = 2.70m)
+  parts.push({
+    kind: "plate",
+    a: landingWidthX,
+    b: 0.045,
+    c: LANDING_DEPTH_Z,
+    final: [landingMidX, deckY, LANDING_MID_Z],
+    finalRot: [0, 0, 0],
+    axisY: false,
+    startTime: baseTime + 0.08,
+    duration: 0.38,
+    dropHeight: 1.2,
+  });
+
+  // 2. Supporting steel framing channels under landing
+  // Longitudinal outer, middle, and building-tie channels along X (length 1.60m)
+  [LANDING_Z_MIN, LANDING_MID_Z, LANDING_Z_MAX].forEach((cz, i) => {
     parts.push({
       kind: "channel",
-      a: bridgeSpanZ + 0.08,
-      b: 0.24,
+      a: landingWidthX,
+      b: 0.22,
       c: 0.08,
-      final: [sideX, beamY, bridgeMidZ],
+      final: [landingMidX, beamY, cz],
+      finalRot: [0, 0, 0],
+      axisY: false,
+      flip: cz > LANDING_MID_Z,
+      startTime: baseTime + 0.02 + i * 0.03,
+      duration: 0.38,
+      dropHeight: 1.3,
+    });
+  });
+
+  // Transverse outer & inner framing channels along Z (length 2.70m)
+  const outerX = isOuterCol ? LEFT_LANDING_X_MIN + 0.04 : RIGHT_LANDING_X_MAX - 0.04;
+  const innerX = isOuterCol ? LEFT_LANDING_X_MAX - 0.04 : RIGHT_LANDING_X_MIN + 0.04;
+
+  [outerX, innerX].forEach((sx, i) => {
+    parts.push({
+      kind: "channel",
+      a: LANDING_DEPTH_Z,
+      b: 0.22,
+      c: 0.08,
+      final: [sx, beamY, LANDING_MID_Z],
       finalRot: [0, Math.PI / 2, 0],
       axisY: false,
-      flip: side > 0,
-      startTime: baseTime + 0.02 + i * 0.04,
-      duration: 0.42,
-      dropHeight: 1.4,
+      flip: sx === outerX ? isOuterCol : !isOuterCol,
+      startTime: baseTime + 0.04 + i * 0.03,
+      duration: 0.40,
+      dropHeight: 1.3,
     });
+  });
 
-    // Connection bolts anchoring cantilever channel to front building beam at z = 1.6
+  // 3. Structural Tie-back to Building Frame at Z = 1.60
+  // Connection bolts anchoring landing steel frame to building column & beam line at Z = 1.60
+  [-0.6, 0, 0.6].forEach((ox, i) => {
     for (const by of [-0.06, 0.06]) {
       bolts.push({
         tc: true,
-        final: [sideX, beamY + by, 1.6],
+        final: [landingMidX + ox, beamY + by, 1.6],
         finalRot: [0, 0, 0],
-        startTime: baseTime + 0.32 + i * 0.03,
+        startTime: baseTime + 0.26 + i * 0.02,
         duration: 0.22,
       });
     }
   });
 
-  // 2. Connector Floor Plate spanning from building deck to stair landing
-  parts.push({
-    kind: "plate",
-    a: bridgeWidthX,
-    b: 0.045,
-    c: bridgeSpanZ,
-    final: [landingX, deckY, bridgeMidZ],
-    finalRot: [0, 0, 0],
-    axisY: false,
-    startTime: baseTime + 0.1,
-    duration: 0.38,
-    dropHeight: 1.2,
-  });
-
-  // 3. Diagonal Structural Knee Strut / Cantilever Brace
-  // Ties the projecting landing directly back into the heavy building column below
-  const colX = isOuterCol ? 6.4 : 3.2;
+  // 4. Diagonal Structural Knee Struts / Cantilever Braces underneath (Tied to Building Columns)
+  const colX = isOuterCol ? -6.4 : -3.2;
   const rise = 1.15;
-  const run = stairZ - 1.6;
+  const run = LANDING_MID_Z - 1.60; // 2.95 - 1.60 = 1.35m
   const strutLen = Math.hypot(run, rise);
   const strutAngle = Math.atan2(run, rise);
 
@@ -658,11 +703,11 @@ function pushStairLandingBridge(
     a: 0.065,
     b: strutLen,
     c: 0.065,
-    final: [colX, deckY - rise / 2 - 0.05, (1.6 + stairZ) / 2],
+    final: [colX, deckY - rise / 2 - 0.05, (1.60 + LANDING_MID_Z) / 2],
     finalRot: [strutAngle, 0, 0],
     axisY: true,
-    startTime: baseTime + 0.16,
-    duration: 0.4,
+    startTime: baseTime + 0.14,
+    duration: 0.40,
     dropHeight: 1.3,
   });
 
@@ -680,54 +725,87 @@ function pushStairLandingBridge(
     dropHeight: 0.9,
   });
 
-  // 4. Safety Guardrails along the outside open edge of the connecting bridge
-  const openSide = isOuterCol ? 1 : -1;
-  const railX = landingX + openSide * (bridgeWidthX / 2);
-
-  // Top handrail
+  // 5. Landing Perimeter Safety Guardrails (Around exposed outside edges)
+  // A. Outer long front rail along X at Z = LANDING_Z_MAX (4.30)
   parts.push({
     kind: "rail",
     a: 0.04,
-    b: bridgeSpanZ,
+    b: landingWidthX,
     c: 0.04,
-    final: [railX, railTopFor(deckY), bridgeMidZ],
-    finalRot: [Math.PI / 2, 0, 0],
+    final: [landingMidX, railTopFor(deckY), LANDING_Z_MAX],
+    finalRot: [0, 0, Math.PI / 2],
     axisY: true,
     accent: true,
     startTime: baseTime + 0.22,
     duration: 0.36,
     dropHeight: 1.0,
   });
-
   if (!isReduced) {
-    // Mid safety rail
     parts.push({
       kind: "rail",
       a: 0.034,
-      b: bridgeSpanZ,
+      b: landingWidthX,
       c: 0.034,
-      final: [railX, railMidFor(deckY), bridgeMidZ],
-      finalRot: [Math.PI / 2, 0, 0],
+      final: [landingMidX, railMidFor(deckY), LANDING_Z_MAX],
+      finalRot: [0, 0, Math.PI / 2],
       axisY: true,
       accent: true,
-      startTime: baseTime + 0.26,
+      startTime: baseTime + 0.25,
       duration: 0.36,
       dropHeight: 1.0,
     });
   }
 
-  // Vertical guardrail stanchions
-  [zInner + 0.25, bridgeMidZ, zOuter - 0.1].forEach((sz, pIdx) => {
+  // B. Transverse outer end rail along Z at outer edge (X = -7.20 for Left, X = -1.60 for Right)
+  const outerRailX = isOuterCol ? LEFT_LANDING_X_MIN : RIGHT_LANDING_X_MAX;
+  parts.push({
+    kind: "rail",
+    a: 0.04,
+    b: LANDING_DEPTH_Z,
+    c: 0.04,
+    final: [outerRailX, railTopFor(deckY), LANDING_MID_Z],
+    finalRot: [Math.PI / 2, 0, 0],
+    axisY: true,
+    accent: true,
+    startTime: baseTime + 0.24,
+    duration: 0.36,
+    dropHeight: 1.0,
+  });
+  if (!isReduced) {
+    parts.push({
+      kind: "rail",
+      a: 0.034,
+      b: LANDING_DEPTH_Z,
+      c: 0.034,
+      final: [outerRailX, railMidFor(deckY), LANDING_MID_Z],
+      finalRot: [Math.PI / 2, 0, 0],
+      axisY: true,
+      accent: true,
+      startTime: baseTime + 0.27,
+      duration: 0.36,
+      dropHeight: 1.0,
+    });
+  }
+
+  // C. Guardrail Stanchions at perimeter corners & joints
+  const stanchionPoints = [
+    [outerRailX, LANDING_Z_MAX],
+    [outerRailX, LANDING_MID_Z],
+    [outerRailX, LANDING_Z_MIN],
+    [isOuterCol ? LEFT_LANDING_X_MAX : RIGHT_LANDING_X_MIN, LANDING_Z_MAX],
+    [outerRailX, 1.65],
+  ];
+  stanchionPoints.forEach(([sx, sz], pIdx) => {
     parts.push({
       kind: "rail",
       a: 0.038,
       b: 1.05,
       c: 0.038,
-      final: [railX, deckY + 0.52, sz],
+      final: [sx, deckY + 0.525, sz],
       finalRot: [0, 0, 0],
       axisY: true,
       accent: true,
-      startTime: baseTime + 0.28 + pIdx * 0.02,
+      startTime: baseTime + 0.30 + pIdx * 0.02,
       duration: 0.32,
       dropHeight: 0.9,
     });
@@ -893,7 +971,7 @@ function pushComplexBracing(
 
   // Bay centers for bracing
   const braceBays = isReduced
-    ? [{ x: 1.6, z: -1.6, tiers: [0, 2] }]
+    ? [{ x: -4.8, z: -1.6, tiers: [0, 2] }]
     : [
       { x: 1.6, z: -1.6, tiers: [0, 1, 2, 3] }, // East Wing Rear
       { x: -4.8, z: -1.6, tiers: [0, 2] }, // West Wing Rear
@@ -1031,7 +1109,7 @@ function pushComplexRailings(
 
     // Rear posts along East Wing (and West Wing if full tier)
     const postXRear = isReduced
-      ? [0.0, 3.2, 6.4]
+      ? [-6.4, -3.2, 0.0]
       : [-6.4, -3.2, 0.0, 3.2, 6.4];
 
     postXRear.forEach((x, pIdx) => {
@@ -1041,7 +1119,7 @@ function pushComplexRailings(
 
     // Front column posts
     const postXFront = isReduced
-      ? [0.0, 3.2, 6.4]
+      ? [-6.4, -3.2, 0.0]
       : [-6.4, -3.2, 0.0, 3.2, 6.4];
 
     postXFront.forEach((x, pIdx) => {
@@ -1060,16 +1138,20 @@ function pushComplexRailings(
       parts.push(rail([midWest, rMid, -1.6], spanWest, [0, 0, Math.PI / 2], railTime + 0.22, 0.4, 1.2));
     }
 
-    // Front Rails (West Wing)
+    // Front Rails (East Wing perimeter guardrails + West Wing top terrace)
     if (!isReduced) {
-      const spanWest = isTopFloor ? 3.2 : 6.4;
-      const midWest = isTopFloor ? -1.6 : -3.2;
-      parts.push(rail([midWest, rTop, 1.6], spanWest, [0, 0, Math.PI / 2], railTime + 0.22, 0.4, 1.2));
+      parts.push(rail([3.2, rTop, 1.6], spanEast, [0, 0, Math.PI / 2], railTime + 0.22, 0.4, 1.2));
+      if (isTopFloor) {
+        parts.push(rail([-1.6, rTop, 1.6], 3.2, [0, 0, Math.PI / 2], railTime + 0.22, 0.4, 1.2));
+      }
     }
 
-    // Transverse End Rails at West side
+    // Transverse End Rails at West and East side
     const endX = !isReduced && !isTopFloor ? -6.4 : -3.2;
     parts.push(rail([endX, rTop, 0], 3.2, [Math.PI / 2, 0, 0], railTime + 0.26, 0.4, 1.2));
+    if (!isReduced) {
+      parts.push(rail([6.4, rTop, 0], 3.2, [Math.PI / 2, 0, 0], railTime + 0.26, 0.4, 1.2));
+    }
   });
 }
 
@@ -1626,9 +1708,9 @@ function StructureShadows({
       <mesh
         geometry={planeGeo}
         material={spotMat}
-        position={[4.8, 0.001, 1.68]}
+        position={[-6.4, 0.001, 3.5]}
         rotation={[-Math.PI / 2, 0, 0]}
-        scale={[1.4, 1.4, 1]}
+        scale={[1.8, 2.8, 1]}
       />
     </group>
   );

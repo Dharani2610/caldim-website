@@ -51,6 +51,97 @@ const BADGES_MAP: Record<string, CanvasBadge[]> = {
   ],
 };
 
+function StaticDisciplineFallback({ id }: { id: string }) {
+  switch (id) {
+    case "structural":
+      return (
+        <svg viewBox="0 0 160 120" className="h-full w-full max-h-36 p-4" aria-hidden="true">
+          <rect x="35" y="24" width="90" height="10" rx="2" fill="#64748B" />
+          <rect x="74" y="34" width="12" height="52" fill="#475569" />
+          <rect x="35" y="86" width="90" height="10" rx="2" fill="#2563EB" />
+          <line x1="28" y1="24" x2="28" y2="96" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 3" opacity="0.8" />
+        </svg>
+      );
+    case "misc":
+      return (
+        <svg viewBox="0 0 160 120" className="h-full w-full max-h-36 p-4" aria-hidden="true">
+          <line x1="20" y1="96" x2="100" y2="34" stroke="#64748B" strokeWidth="4" strokeLinecap="round" />
+          <rect x="14" y="94" width="14" height="4" rx="1" fill="#475569" />
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <g key={i}>
+              <rect x={22 + i * 14} y={90 - i * 11} width="18" height="4" rx="1" fill="#94A3B8" />
+              <rect x={38 + i * 14} y={90 - i * 11} width="3" height="4" fill="#475569" />
+            </g>
+          ))}
+          <rect x="100" y="32" width="36" height="4" rx="1" fill="#94A3B8" />
+          <rect x="100" y="36" width="36" height="5" fill="#64748B" />
+          <line x1="24" y1="90" x2="24" y2="58" stroke="#38BDF8" strokeWidth="2" />
+          <line x1="52" y1="68" x2="52" y2="36" stroke="#38BDF8" strokeWidth="2" />
+          <line x1="80" y1="46" x2="80" y2="14" stroke="#38BDF8" strokeWidth="2" />
+          <line x1="102" y1="32" x2="102" y2="8" stroke="#38BDF8" strokeWidth="2" />
+          <line x1="134" y1="32" x2="134" y2="8" stroke="#38BDF8" strokeWidth="2" />
+          <path d="M 24 74 L 102 20 L 134 20" stroke="#38BDF8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.85" />
+          <path d="M 24 58 L 102 8 L 134 8" stroke="#38BDF8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </svg>
+      );
+    case "connections":
+      return (
+        <svg viewBox="0 0 160 120" className="h-full w-full max-h-36 p-4" aria-hidden="true">
+          <rect x="40" y="16" width="22" height="88" rx="2" fill="#475569" />
+          <rect x="62" y="32" width="8" height="56" rx="1" fill="#38BDF8" />
+          <rect x="70" y="38" width="60" height="44" rx="2" fill="#2563EB" opacity="0.9" />
+          <circle cx="66" cy="44" r="2.5" fill="#F8FAFC" />
+          <circle cx="66" cy="56" r="2.5" fill="#F8FAFC" />
+          <circle cx="66" cy="68" r="2.5" fill="#F8FAFC" />
+          <circle cx="66" cy="80" r="2.5" fill="#F8FAFC" />
+        </svg>
+      );
+    case "joist-deck":
+      return (
+        <svg viewBox="0 0 160 120" className="h-full w-full max-h-36 p-4" aria-hidden="true">
+          <rect x="25" y="30" width="110" height="8" rx="1.5" fill="#94A3B8" />
+          {[-1, 0, 1].map((offset, i) => (
+            <g key={i} transform={`translate(${80 + offset * 34}, 38)`}>
+              <line x1="-12" y1="0" x2="0" y2="46" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" />
+              <line x1="0" y1="46" x2="12" y2="0" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" />
+              <line x1="-15" y1="46" x2="15" y2="46" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" />
+            </g>
+          ))}
+        </svg>
+      );
+    case "estimation":
+      return (
+        <svg viewBox="0 0 160 120" className="h-full w-full max-h-36 p-4" aria-hidden="true">
+          {[
+            { h: 32, c: "#64748B" },
+            { h: 50, c: "#64748B" },
+            { h: 40, c: "#64748B" },
+            { h: 72, c: "#2563EB" },
+            { h: 58, c: "#64748B" },
+          ].map((bar, i) => (
+            <rect key={i} x={35 + i * 19} y={90 - bar.h} width="13" height={bar.h} rx="2" fill={bar.c} />
+          ))}
+          <line x1="28" y1="92" x2="132" y2="92" stroke="#38BDF8" strokeWidth="1.5" />
+        </svg>
+      );
+    case "digital-automation":
+      return (
+        <svg viewBox="0 0 160 120" className="h-full w-full max-h-36 p-4" aria-hidden="true">
+          <circle cx="80" cy="60" r="22" fill="none" stroke="#38BDF8" strokeWidth="4" />
+          <circle cx="80" cy="60" r="10" fill="none" stroke="#2563EB" strokeWidth="1.5" />
+          {[0, 60, 120, 180, 240, 300].map((deg, i) => {
+            const rad = (deg * Math.PI) / 180;
+            const x = 80 + Math.cos(rad) * 22;
+            const y = 60 + Math.sin(rad) * 22;
+            return <rect key={i} x={x - 4} y={y - 4} width="8" height="8" rx="1.5" fill="#64748B" />;
+          })}
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 export default function Services({ services }: ServicesProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [activeModalService, setActiveModalService] = useState<ServiceContent | null>(null);
@@ -147,12 +238,13 @@ export default function Services({ services }: ServicesProps) {
                   </span>
                 </div>
 
-                {/* CENTER: LARGE 3D INTERACTIVE ANIMATION VIEWPORT */}
+                {/* CENTER VIEWPORT */}
                 <div className="my-4 h-[250px] sm:h-[280px] md:h-[300px] w-full rounded-xl overflow-hidden border border-slate-200/60 bg-slate-50/60 relative group-hover:border-blue-300/60 transition-colors">
                   <DisciplineCanvas
                     SceneComponent={SceneComponent}
                     isHovered={isHovered}
                     badges={badges}
+                    fallbackIcon={<StaticDisciplineFallback id={service.id} />}
                   />
                 </div>
 
