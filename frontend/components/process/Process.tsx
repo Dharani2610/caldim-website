@@ -75,41 +75,93 @@ const phaseMetadata = [
   },
 ];
 
+const PHASE_DURATION = 3500; // 3.5 seconds per phase
+const TOTAL_PHASES = 6;
+const TOTAL_SEGMENTS = 5;
+
 export default function Process() {
   const [activeStep, setActiveStep] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const totalSteps = processPhases.length;
   const currentPhase = processPhases[activeStep];
   const meta = phaseMetadata[activeStep];
 
-  // Auto-advance slideshow timer
-  useEffect(() => {
-    if (isPlaying) {
-      timerRef.current = setInterval(() => {
-        setActiveStep((prev) => (prev + 1) % totalSteps);
-      }, 5500);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isPlaying, totalSteps]);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const progressRef = useRef<number>(0); // 0.0 to 6.0
+  const lastTimeRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const activeStepRef = useRef<number>(0);
 
+  useEffect(() => {
+    activeStepRef.current = activeStep;
+  }, [activeStep]);
+
+  // Continuous, lag-free progress animation loop
+  useEffect(() => {
+    if (!isPlaying) {
+      lastTimeRef.current = null;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      return;
+    }
+
+    const animate = (now: number) => {
+      if (lastTimeRef.current === null) {
+        lastTimeRef.current = now;
+      }
+
+      let delta = now - lastTimeRef.current;
+      lastTimeRef.current = now;
+
+      // Prevent huge jumps when returning from background tab
+      if (delta > 500) delta = 16;
+
+      // Advance progress: 1 phase = PHASE_DURATION ms
+      const newProgress = (progressRef.current + delta / PHASE_DURATION) % TOTAL_PHASES;
+      progressRef.current = newProgress;
+
+      // Fill width percentage: from 0 to 5 segments, capped at 100%
+      const widthPct = Math.min((newProgress / TOTAL_SEGMENTS) * 100, 100);
+      if (progressBarRef.current) {
+        progressBarRef.current.style.width = `${widthPct}%`;
+      }
+
+      // Step index corresponds to floor of progress (0 to 5)
+      const currentStep = Math.min(Math.floor(newProgress), TOTAL_PHASES - 1);
+      if (currentStep !== activeStepRef.current) {
+        activeStepRef.current = currentStep;
+        setActiveStep(currentStep);
+      }
+
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [isPlaying]);
 
   const handleManualSelect = (index: number) => {
+    progressRef.current = index;
+    if (progressBarRef.current) {
+      const widthPct = Math.min((index / TOTAL_SEGMENTS) * 100, 100);
+      progressBarRef.current.style.width = `${widthPct}%`;
+    }
+    activeStepRef.current = index;
     setActiveStep(index);
     setIsPlaying(false); // Pause on user interaction so they can read at their own pace
   };
 
   const handlePrev = () => {
-    setActiveStep((prev) => (prev - 1 + totalSteps) % totalSteps);
-    setIsPlaying(false);
+    const prev = (activeStep - 1 + totalSteps) % totalSteps;
+    handleManualSelect(prev);
   };
 
   const handleNext = () => {
-    setActiveStep((prev) => (prev + 1) % totalSteps);
-    setIsPlaying(false);
+    const next = (activeStep + 1) % totalSteps;
+    handleManualSelect(next);
   };
 
   return (
@@ -626,13 +678,17 @@ export default function Process() {
               {/* Main Steel Baseline */}
               <div className="absolute top-4 sm:top-5 left-0 right-0 h-1 bg-blueprint/70 rounded-full" />
 
-              {/* Active filled highlight beam segment */}
+              {/* Active filled highlight beam segment with continuous fluid progress */}
               <div
-                className="absolute top-4 sm:top-5 left-0 h-1 bg-gradient-to-r from-accent via-accent to-mark-cool rounded-full transition-all duration-500 ease-out"
+                ref={progressBarRef}
+                className="absolute top-4 sm:top-5 left-0 h-1 bg-gradient-to-r from-accent via-accent to-mark-cool rounded-full pointer-events-none"
                 style={{
-                  width: `${(activeStep / (totalSteps - 1)) * 100}%`,
+                  width: `${Math.min((activeStep / TOTAL_SEGMENTS) * 100, 100)}%`,
                 }}
-              />
+              >
+                {/* Glowing leading head tip */}
+                <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_10px_rgba(37,99,235,0.9)] ring-2 ring-white/80" />
+              </div>
 
               {/* 6 Interactive Milestone Phase Nodes */}
               <div className="relative flex justify-between">
@@ -650,7 +706,7 @@ export default function Process() {
                     >
                       {/* Node Circle */}
                       <div
-                        className={`relative flex h-8 w-8 sm:h-11 sm:w-11 items-center justify-center rounded-full border-2 transition-all duration-300 ${
+                        className={`relative z-10 flex h-8 w-8 sm:h-11 sm:w-11 items-center justify-center rounded-full border-2 transition-all duration-300 ${
                           isActive
                             ? "border-accent bg-accent/25 scale-110 shadow-[0_0_18px_rgba(63,169,232,0.6)]"
                             : isCompleted
