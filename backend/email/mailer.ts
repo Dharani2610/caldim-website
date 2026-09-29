@@ -3,6 +3,14 @@ import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { env } from "@/backend/env";
 
+
+
+
+
+
+
+
+
 export interface RfqMailData {
   name: string;
   company: string;
