@@ -89,6 +89,9 @@ export interface LeaderDoc {
   title: string;
   credentials: string;
   bio: string;
+  education?: string | null;
+  experience?: string | null;
+  highlights?: string[] | null;
   location: string;
   email?: string | null;
   linkedinUrl?: string | null;

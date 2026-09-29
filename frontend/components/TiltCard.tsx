@@ -23,6 +23,7 @@ export default function TiltCard({
   floatDelay = 0,
   float = false,
   fillHeight = true,
+  disabled = false,
 }: {
   children: ReactNode;
   /** Classes for the inner tilting surface — background, border, padding, radius. */
@@ -42,6 +43,8 @@ export default function TiltCard({
    * silently win over the caller's class.
    */
   fillHeight?: boolean;
+  /** Disable tilt effect (e.g. when card is flipped). */
+  disabled?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [style, setStyle] = useState<CSSProperties>({});
@@ -51,8 +54,12 @@ export default function TiltCard({
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
+  useEffect(() => {
+    if (disabled) setStyle({});
+  }, [disabled]);
+
   const handleMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (reduced || event.pointerType !== "mouse") return;
+    if (disabled || reduced || event.pointerType !== "mouse") return;
     const element = ref.current;
     if (!element) return;
 

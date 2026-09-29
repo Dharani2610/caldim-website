@@ -28,6 +28,9 @@ export interface LeaderView {
   title: string;
   credentials: string;
   bio: string;
+  education?: string;
+  experience?: string;
+  highlights?: string[];
   location: string;
   email: string | null;
   linkedinUrl: string | null;

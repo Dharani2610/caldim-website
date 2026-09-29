@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Upload } from "lucide-react";
+import { Globe, MapPin, Phone, Upload } from "lucide-react";
 import MagneticButton from "@/frontend/components/MagneticButton";
 import Reveal from "@/frontend/components/ui/Reveal";
 import SectionHeading from "@/frontend/components/ui/SectionHeading";
@@ -107,6 +107,16 @@ export default function Contact({
     fieldErrors[name]
       ? ({ "aria-invalid": true, "aria-describedby": `${name}-error` } as const)
       : {};
+
+  const indiaOffices = offices.filter((o) => !o.isInternational && !o.city.includes("USA"));
+  const usaOffice = offices.find((o) => o.isInternational || o.city.includes("USA")) ?? {
+    city: "USA — INTERNATIONAL OFFICE",
+    name: "Caldim Tech Services LLC",
+    address: "8668 John Hickman Pkwy, Suite 903, Frisco, Texas 75034, USA",
+    phone: "+1 (248) 455-3855",
+    tag: "INTERNATIONAL OFFICE",
+    isInternational: true,
+  };
 
   return (
     <section
@@ -248,7 +258,7 @@ export default function Contact({
 
           <Reveal delay={0.1} className="flex flex-col gap-8">
             <h3 className="font-display text-xl font-semibold text-paper">Offices</h3>
-            {offices.map((office) => (
+            {indiaOffices.map((office) => (
               <div key={office.city} className="border-t border-blueprint pt-4">
                 <p className="font-medium text-paper">{office.city}</p>
                 <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-paper-dim">
@@ -272,6 +282,115 @@ export default function Contact({
                   </li>
                 ))}
               </ul>
+            </div>
+          </Reveal>
+        </div>
+
+        {/* Global Presence & USA Office Panel */}
+        <div id="global-presence" className="mt-20 border-t border-blueprint pt-16">
+          <Reveal>
+            <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12 lg:gap-12">
+              {/* Left Column: Context & Global Presence Details */}
+              <div className="flex flex-col justify-between lg:col-span-6">
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <Globe size={15} className="text-accent" aria-hidden="true" />
+                    <span className="label-mono-sm font-semibold uppercase tracking-widest text-accent">
+                      GLOBAL PRESENCE
+                    </span>
+                  </div>
+
+                  <h3 className="font-display text-2xl font-bold tracking-tight text-paper sm:text-3xl lg:text-4xl">
+                    Engineering Beyond Borders.
+                  </h3>
+
+                  <p className="mt-4 text-base leading-relaxed text-paper-dim">
+                    Delivering AISC-compliant steel detailing and PE-stamped connection designs across
+                    North America and worldwide. Our dedicated US presence in Texas ensures real-time
+                    collaboration, seamless project management, and rapid turnaround across all US time zones.
+                  </p>
+                </div>
+
+                <div className="mt-8 grid grid-cols-1 gap-4 border-t border-blueprint/60 pt-6 sm:grid-cols-3">
+                  <div className="flex flex-col">
+                    <span className="label-mono-sm font-bold text-accent">50 STATES</span>
+                    <span className="text-xs text-paper-dim mt-0.5">PE Stamping Coverage</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="label-mono-sm font-bold text-accent">AISC &amp; NISD</span>
+                    <span className="text-xs text-paper-dim mt-0.5">Standards Compliant</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="label-mono-sm font-bold text-accent">CST / EST / PST</span>
+                    <span className="text-xs text-paper-dim mt-0.5">US Time Zone Alignment</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Visually Distinct USA Office Panel */}
+              <div className="lg:col-span-6">
+                <div className="group relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-blueprint bg-steel-900/50 p-6 backdrop-blur-md transition-all duration-300 hover:border-blueprint-light motion-reduce:transition-none sm:p-8 card-surface">
+                  {/* Subtle technical blueprint grid background texture */}
+                  <div
+                    className="pointer-events-none absolute inset-0 bp-grid-fine opacity-25 transition-opacity duration-300 group-hover:opacity-40 motion-reduce:transition-none [html.light_&]:opacity-15"
+                    aria-hidden="true"
+                  />
+
+                  {/* Corner Accent Glow */}
+                  <div
+                    className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-accent/10 blur-2xl transition-opacity duration-500 group-hover:opacity-100 motion-reduce:hidden"
+                    aria-hidden="true"
+                  />
+
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75 motion-reduce:hidden" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent" />
+                        </span>
+                        <span className="label-mono font-semibold uppercase tracking-wider text-paper text-xs sm:text-sm">
+                          {usaOffice.city || "USA — INTERNATIONAL OFFICE"}
+                        </span>
+                      </div>
+                      <span className="label-mono-sm rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[11px] font-semibold text-accent">
+                        {usaOffice.tag || "INTERNATIONAL OFFICE"}
+                      </span>
+                    </div>
+
+                    <div className="mt-5">
+                      <h4 className="font-display text-lg font-bold text-paper sm:text-xl">
+                        {usaOffice.name || "Caldim Tech Services LLC"}
+                      </h4>
+                      <div className="my-4 border-l-2 border-accent pl-4">
+                        <p className="text-sm leading-relaxed text-paper-dim">
+                          {usaOffice.address}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 mt-6 flex flex-col gap-4 border-t border-blueprint/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2 label-mono-sm text-[11px] text-paper-dim/80">
+                      <MapPin size={13} className="text-accent shrink-0" aria-hidden="true" />
+                      <span>Frisco, TX · 33.1507° N, 96.8236° W</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="label-mono-sm text-xs text-paper-dim/80 hidden sm:inline">
+                        Direct Line:
+                      </span>
+                      <a
+                        href={`tel:${(usaOffice.phone || "+12484553855").replace(/[^\d+]/g, "")}`}
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all duration-200 hover:bg-accent/90 hover:shadow-accent/20 motion-reduce:transition-none"
+                      >
+                        <Phone size={13} aria-hidden="true" />
+                        <span>{usaOffice.phone || "+1 (248) 455-3855"}</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </Reveal>
         </div>

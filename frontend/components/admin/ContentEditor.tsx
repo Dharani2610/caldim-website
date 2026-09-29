@@ -387,15 +387,21 @@ function SectionFields({
         <RepeatingList
           items={content.offices}
           onChange={(value) => update("offices", value)}
-          blank={{ city: "", address: "" }}
+          blank={{ city: "", address: "", name: "", phone: "", tag: "", isInternational: false }}
           labelFor={(item) => item.city || "Untitled office"}
           render={(item, patch, index) => (
             <div className="space-y-4">
               <Field label="Label" htmlFor={`off-city-${index}`}>
                 <TextInput id={`off-city-${index}`} value={item.city} onChange={(e) => patch({ city: e.target.value })} />
               </Field>
+              <Field label="Legal / Company Name" htmlFor={`off-name-${index}`}>
+                <TextInput id={`off-name-${index}`} value={item.name ?? ""} onChange={(e) => patch({ name: e.target.value })} />
+              </Field>
               <Field label="Address" htmlFor={`off-addr-${index}`} hint="Line breaks are preserved on the site.">
                 <TextArea id={`off-addr-${index}`} rows={4} value={item.address} onChange={(e) => patch({ address: e.target.value })} />
+              </Field>
+              <Field label="Phone" htmlFor={`off-phone-${index}`}>
+                <TextInput id={`off-phone-${index}`} value={item.phone ?? ""} onChange={(e) => patch({ phone: e.target.value })} />
               </Field>
             </div>
           )}

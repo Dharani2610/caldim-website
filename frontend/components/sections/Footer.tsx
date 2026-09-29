@@ -2,6 +2,8 @@ import Image from "next/image";
 import { Instagram, Linkedin } from "lucide-react";
 import { standards } from "@/shared/data/content";
 import type { ServiceContent } from "@/shared/content/types";
+import { AiscSeal, NisdSeal } from "@/frontend/components/sections/Certifications";
+import GlobalEngineeringNetwork from "@/frontend/components/sections/GlobalEngineeringNetwork";
 
 const sitemap = [
   { href: "#top", label: "Home" },
@@ -17,9 +19,9 @@ const sitemap = [
 
 export default function Footer({ services }: { services: ServiceContent[] }) {
   return (
-    <footer className="relative border-t border-blueprint bg-steel-950 pb-8 pt-16">
+    <footer id="site-footer" className="relative border-t border-blueprint bg-steel-950 pb-8 pt-16">
       <div className="mx-auto max-w-[1440px] px-6 md:px-10">
-        <div className="mb-12 flex items-start justify-between">
+        <div className="mb-10 flex items-start justify-between">
           <div className="group flex items-center gap-3" style={{ perspective: "400px" }}>
             <Image
               src="/images/caldim-logo.png"
@@ -32,6 +34,39 @@ export default function Footer({ services }: { services: ServiceContent[] }) {
             <span className="font-display text-lg font-semibold text-paper md:text-xl">
               CALDIM ENGINEERING SERVICES
             </span>
+          </div>
+        </div>
+
+        {/* Affiliation & Compliance Seals */}
+        <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="flex items-center gap-5 sm:gap-6 rounded-2xl border border-blueprint bg-steel-900/40 p-5 sm:p-7 backdrop-blur-sm transition-colors hover:border-blueprint-light">
+            <div className="relative flex h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 shrink-0 items-center justify-center rounded-2xl border border-blueprint/60 bg-steel-950 p-2.5 sm:p-3 text-paper shadow-xs">
+              <AiscSeal className="h-full w-full object-contain text-paper" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="label-mono-sm font-semibold text-accent">STANDARDS COMPLIANT</span>
+              <h3 className="font-display text-lg md:text-xl font-semibold text-paper mt-1 leading-snug">
+                American Institute of Steel Construction
+              </h3>
+              <p className="label-mono-sm text-paper-dim mt-1.5 leading-normal">
+                AISC 360 · AISC 303 Code of Practice
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-5 sm:gap-6 rounded-2xl border border-blueprint bg-steel-900/40 p-5 sm:p-7 backdrop-blur-sm transition-colors hover:border-blueprint-light">
+            <div className="relative flex h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 shrink-0 items-center justify-center rounded-2xl border border-blueprint/60 bg-steel-950 p-2.5 sm:p-3 text-paper shadow-xs">
+              <NisdSeal className="h-full w-full object-contain text-paper" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="label-mono-sm font-semibold text-accent">OFFICIAL MEMBER</span>
+              <h3 className="font-display text-lg md:text-xl font-semibold text-paper mt-1 leading-snug">
+                National Institute of Steel Detailing
+              </h3>
+              <p className="label-mono-sm text-paper-dim mt-1.5 leading-normal">
+                NISD Detailing Member Organization
+              </p>
+            </div>
           </div>
         </div>
 
@@ -109,6 +144,9 @@ export default function Footer({ services }: { services: ServiceContent[] }) {
             </ul>
           </div>
         </div>
+
+        {/* Global Engineering Network (Corporate Offices & Locations) */}
+        <GlobalEngineeringNetwork />
 
         <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-blueprint pt-6 sm:flex-row sm:items-center">
           <p className="label-mono-sm text-paper-dim/80">

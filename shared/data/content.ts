@@ -133,19 +133,19 @@ export const processPhases = [
 export const projects = [
   {
     id: "austin-mixed-use",
-    type: "8-story mixed-use",
-    location: "Austin, TX",
-    tons: "1,240",
+    type: "DC Metro Station Package",
+    location: "Washington, DC 20003",
+    tons: "242",
     drawings: "610",
     connections: "380",
     scheduleSaved: "3 weeks",
-    note: "Full structural + misc detailing, connection design, and joist/deck coordination on a compressed fast-track schedule.",
+    note: "Client: Steel Fab Enterprises, LLC. — Stations: Judiciary (71T), Smithsonian (48T), U Street (28T), Potomac (48T), Capitol South (47T).",
   },
   {
     id: "midwest-distribution",
     type: "Distribution center, 620,000 SF",
-    location: "Joliet, IL",
-    tons: "2,850",
+    location: "Maldives Airport",
+    tons: "350",
     drawings: "940",
     connections: "540",
     scheduleSaved: "5 weeks",
@@ -153,9 +153,9 @@ export const projects = [
   },
   {
     id: "vancouver-parkade",
-    type: "Precast/steel hybrid parkade",
-    location: "Vancouver, BC",
-    tons: "760",
+    type: "Maryland Ave",
+    location: "1250 Maryland Avenue, Washington, DC 20024",
+    tons: "1,270",
     drawings: "410",
     connections: "265",
     scheduleSaved: "2 weeks",
@@ -286,14 +286,31 @@ export const projectTypes = services.map((s) => s.title);
 
 export const offices = [
   {
-    city: "Registered Office — Hosur",
-    address:
-      "CALDIM Engineering Pvt. Ltd.\nPlot No. 22, 23, 24, 2nd Floor, Durga Bhavani Towers,\nNear RTO Check Post, NH 207, Bagalur Road,\nHosur – 635103, Tamil Nadu, India",
-  },
-  {
     city: "Corporate Office — Chennai",
     address:
-      "Minmac Center #118, First Floor,\nArcot Road, Valasaravalakkam,\nChennai – 600087, Tamil Nadu, India",
+      "Minimac Center #118, First Floor,\nArcot Road, Valasaravakkam,\nChennai – 600087, Tamil Nadu, India",
+    name: "",
+    phone: "248-455 3855",
+    tag: "HEADQUARTERS",
+    isInternational: false,
+  },
+  {
+    city: "Registered Office — Hosur",
+    address:
+      "Plot No. 22, 23, 24, 2nd Floor, Durga Bhavani Towers,\nNear RTO Check Post, NH 207, Bagalur Road,\nHosur – 635103, Tamil Nadu, India",
+    name: "",
+    phone: "04344610637",
+    tag: "BRANCH OFFICE",
+    isInternational: false,
+  },
+  {
+    city: "USA — INTERNATIONAL OFFICE",
+    address:
+      "8668 John Hickman Pkwy, Suite 903, Frisco, Texas 75034, USA",
+    name: "Caldim Tech Services LLC",
+    phone: "+1 (248) 455-3855",
+    tag: "INTERNATIONAL EXTENSION",
+    isInternational: true,
   },
 ] as const;
 

@@ -5,7 +5,7 @@ import type { PillarContent } from "@/shared/content/types";
 
 export default function WhyUs({ pillars }: { pillars: PillarContent[] }) {
   return (
-    <section className="relative bg-steel-950 py-24 md:py-32" aria-labelledby="why-heading">
+    <section className="relative bg-transparent py-24 md:py-32" aria-labelledby="why-heading">
       <div className="mx-auto max-w-[1440px] px-6 md:px-10">
         <SectionHeading
           eyebrow="WHY CALDIM"
